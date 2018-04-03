@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>at-core-modal-element demo page</title>
+  <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+  <link rel="import" href="../../at-core-style-classes/at-core-style-classes.html">
+  <link rel="import" href="../at-core-modal-element.html">
+  <style is="custom-style" include="at-core-style-classes">
+    .debug-style {
+      box-sizing: border-box;
+      max-width: 1024px;
+      margin: 16px auto 0 auto;
+
+      padding: 32px;
+      border: 1px solid purple;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="layout-horizontal debug-style">
+    <at-core-modal-element id="demo1" class="layout-flex" element-name="../at-form-array/at-form-array"></at-core-modal-element>
+    <button id="openBtn1" type="button" class="block">Open modal</button>
+  </div>
+  <div class="debug-style">
+    Value changed echo:
+    <pre id="valueChangeEcho1"></pre>
+  </div>
+
+  <script> 
+    var validSchema = {
+      properties: {
+        text1: {
+          type: "string",
+          value: '',
+          title: "Text 1"
+        }
+      }
+    }
+    var invalidSchema = [];
+
+    var validValue = [];
+    var invalidValue = false;
+
+    function initDemo(eltSelector, btnSelector, echoSelector) {
+      var demo = document.getElementById(eltSelector);
+      var openBtn = document.getElementById(btnSelector);
+      var vcEcho = document.getElementById(echoSelector);
+
+      demo.schema = invalidSchema;
+      demo.value = validValue;
+      Polymer.dom.flush();
+
+      demo.addEventListener('value-changed', function(event) { 
+        vcEcho.textContent = JSON.stringify(event.detail.value, null, ' ');
+      });
+
+      openBtn.addEventListener('click', function(event) {
+        demo.open();
+      });
+    }
+
+    document.addEventListener('WebComponentsReady', function() {
+      initDemo('demo1', 'openBtn1', 'valueChangeEcho1');
+    }); 
+  </script>
+</body>
+
+</html>
