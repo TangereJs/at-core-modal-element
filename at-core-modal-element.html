@@ -54,7 +54,8 @@
           return {
             properties: {}
           };
-        }
+        },
+        observer: '_schemaChanged'
       },
 
       value: {
@@ -142,11 +143,12 @@
         return;
       }
 
-      if (elt.hasOwnProperty('schema')) {
+      if (elt.properties.hasOwnProperty('schema')) {
+        elt.autoValidate = true;
         elt.schema = this.schema;
       }
 
-      elt.value = this.value;
+      elt.value = this.value;      
       elt.addEventListener('value-changed', this._handleElementValueChanged.bind(this));
       
       Polymer.dom(this.$.coreModal).insertBefore(elt, this.$.buttonContainer);
@@ -174,10 +176,41 @@
       this.fire('value-changed', { value: this.value }, { bubbles: false });
     },
 
+    _schemaChanged: function(newValue, oldValue) {
+      var schemaObj = newValue;
+      if (this._isString(newValue)) {
+        try {
+          schemaObj = JSON.parse(newValue);
+        } catch(e) { }
+      }
+
+      if (!this._isObject(schemaObj))  {
+        this._setError('Schema must be an object that has properties property as object, or the JSON string of the former.');
+        return;
+      }
+
+      if (!schemaObj.hasOwnProperty('properties')) {
+        this._setError('Schema must be an object that has properties property as object, or the JSON string of the former.');
+        return;
+      }
+
+      Polymer.dom(this.$.eltPlaceholder).setAttribute('hidden', '');
+
+      var elt = Polymer.dom(this.$.coreModal).firstElementChild;
+      if (elt.id === "buttonContainer") return;
+
+      elt.schema = schemaObj;
+    },
+
     // 
     // public api
     // 
     open: function() {
+      // clear initial validation errors because validation errors should be displayed only as result of user interaction
+      var elt = Polymer.dom(this.$.coreModal).firstElementChild;
+      if (elt.id === "buttonContainer") return;
+      elt.validate(false);
+
       this.$.coreModal.open();
     },
 
@@ -193,21 +226,25 @@
       Polymer.dom(this.$.eltPlaceholder).classList.remove('error');
       Polymer.dom(this.$.eltPlaceholder).classList.remove('information');
       Polymer.dom(this.$.eltPlaceholder).textContent = '';
+      Polymer.dom(this.$.eltPlaceholder).removeAttribute('hidden');
     },
 
     _setError: function(text) {
       Polymer.dom(this.$.eltPlaceholder).innerHTML = '';
       Polymer.dom(this.$.eltPlaceholder).classList.add('error');
       Polymer.dom(this.$.eltPlaceholder).textContent = text;
+      Polymer.dom(this.$.eltPlaceholder).removeAttribute('hidden');
     },
 
     _setInformation: function(text) {
       Polymer.dom(this.$.eltPlaceholder).innerHTML = '';
       Polymer.dom(this.$.eltPlaceholder).classList.add('info');
       Polymer.dom(this.$.eltPlaceholder).textContent = text;
+      Polymer.dom(this.$.eltPlaceholder).removeAttribute('hidden');
     },
 
     _isString: function(obj) { return Object.prototype.toString.call(obj) === "[object String]"; },
-    _isFunction: function(obj) { return Object.prototype.toString.call(obj) === "[object Function]"; }
+    _isFunction: function(obj) { return Object.prototype.toString.call(obj) === "[object Function]"; },
+    _isObject: function(obj) { return Object.prototype.toString.call(obj) === "[object Object]"; }
   });
 </script>
