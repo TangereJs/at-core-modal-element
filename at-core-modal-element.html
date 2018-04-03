@@ -227,7 +227,7 @@
         // parse JSON strings of arrays or objects
         try {
           actValue = JSON.parse(newValue);
-        } catch (e) { 
+        } catch (e) {
           this._setError('Invalid value json string: ' + e);
           return;
         }
@@ -239,11 +239,11 @@
         return;
       }
 
-      if (newValue !== null && typeof newValue === "object") {
-        elt.value = JSON.parse(JSON.stringify(newValue));
+      if (this._referenceTypeStrings.indexOf(actValueType) > -1) {
+        elt.value = JSON.parse(JSON.stringify(actValue));
 
       } else {
-        elt.value = newValue;
+        elt.value = actValue;
       }
     },
 
