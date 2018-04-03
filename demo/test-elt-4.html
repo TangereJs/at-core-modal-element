@@ -1,0 +1,33 @@
+<link rel="import" href="../../tangere/tangere.html" />
+<dom-module id="test-elt-4">
+  <template>
+    <style>
+      :host {
+        display: block;
+        box-sizing: border-box;
+      }
+    </style>
+    <div>This element has value property</div>
+    <div>This element has validate function</div>
+    <div>Value set is: <span>[[value]]</span></div>
+  </template>
+</dom-module>
+<script>
+  Polymer({
+    is: "test-elt-4",
+
+    properties: {
+      value: {
+        type: String,
+        value: ''
+      }
+    },
+
+    ready: function() {
+    },
+
+    validate: function(result) {
+      return result;
+    }
+  });
+</script>

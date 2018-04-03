@@ -1,13 +1,40 @@
 <link rel="import" href="../tangere/tangere.html" />
+<link rel="import" href="../at-core-style-classes/at-core-style-classes.html">
+<link rel="import" href="../at-carbon-button/at-carbon-button.html">
+<link rel="import" href="../at-core-modal/at-core-modal.html">
+
 <dom-module id="at-core-modal-element">
   <template>
-    <style>
+    <style include="at-core-style-classes">
       :host {
         display: block;
         box-sizing: border-box;
       }
+
+      .cancel-btn {
+        --at-carbon-button: {
+          background-color: var(--at-light-blue);
+          color: var(--at-background-text-color);
+        }
+      }
+
+      .ok-btn {
+        --at-carbon-button: {
+          background-color: var(--at-green);
+          color: var(--at-background-text-color);
+        }
+      }
     </style>
-    <content></content>
+
+    <div id="eltPlaceholder" class="font-body1"></div>
+    
+    <at-core-modal id="coreModal">
+      <div id="buttonContainer" class="layout-horizontal layout-center-justified mt" hidden>
+        <at-carbon-button raised class="cancel-btn" label="Cancel" on-tap="_handleCancelButtonTap"></at-carbon-button>
+        <at-carbon-button id="okButton" disabled raised class="ok-btn" label="OK" on-tap="_handleOkButtonTap"></at-carbon-button>
+      </div>
+    </at-core-modal>
+
   </template>
 </dom-module>
 <script>
@@ -15,8 +42,172 @@
     is: "at-core-modal-element",
     properties: {
 
+      elementName: {
+        type: String,
+        value: '',
+        observer: '_initialize'
+      },
+
+      schema: {
+        type: Object,
+        value: function() {
+          return {
+            properties: {}
+          };
+        }
+      },
+
+      value: {
+        type: Object,
+        value: function() {
+          return {};
+        }
+      }
     },
-    ready: function () {
-    }
+
+    _placeholderText: '<div class="placeholder-text"></div><div class="placeholder-text mtsm"></div>',
+
+    ready: function() {
+    },
+
+    _initialize: function(newValue, oldValue) {
+      Polymer.dom(this.$.eltPlaceholder).removeAttribute('hidden');
+      this._setPlaceholder();
+
+      if (!this._isString(newValue)) {
+        this._setError('Component name is not a string.');
+        return;
+      }
+
+      if (!newValue.length) {
+        this._setInformation('Component name is empty.');
+        return;
+      }
+
+      this._internalInitialize(newValue);
+    },
+
+    _internalInitialize: function(elementName) {
+      // compute importHref
+      var importUrl = elementName;
+      var fsIndex = importUrl.indexOf("/");
+      if (fsIndex > 0) {
+        importUrl = importUrl.substring(fsIndex + 1);
+      }
+
+      // expand relative name with name prefix
+      if (importUrl.indexOf(".card") > 0) {
+        var resolve = { namePrefix: "" };
+        this.fire("resolve-name-prefix", resolve);
+        var prefix = resolve.namePrefix;
+
+        if (importUrl == "default.view") importUrl = "";
+        importUrl = importUrl.replace("default.", "");
+        importUrl = prefix + "/" + prefix + (importUrl ? ("-" + importUrl.replace(".", "-")) : "");
+      }
+
+      // load item-component from other component (itemComponent = component-name/item-component) or from localfolder (item-component)
+      var compUrl = this.resolveUrl("../");
+      if (document.URL.indexOf("/elements/designer-element/") >= 0) compUrl = "/components/"; // standalone designer preview?
+
+      if (window.ComponentsBase != undefined) compUrl = window.ComponentsBase;
+
+      importUrl = fsIndex >= 0 ? compUrl + importUrl + ".html" : importUrl + ".html";
+
+      var renderUI = this._renderUI.bind(this);
+      var setError = this._setError.bind(this);
+
+      this.importHref(importUrl, function(event) {
+        var href = event.target.href;
+        var elementName = href.substring(href.lastIndexOf("/") + 1);
+        elementName = elementName.replace(".html", "");
+        renderUI(elementName);
+
+      }, function(event) {
+        setError("An error occured while importing " + importUrl);
+
+      }, true);
+    },
+
+    _renderUI: function(elementName) {
+      var elt = this.create(elementName);
+
+      if (!elt.properties.hasOwnProperty('value')) {
+        this._setError('Element ' + elementName + ' does not have value property');
+        return;
+      }
+
+      if (!this._isFunction(elt.validate)) {
+        this._setError('Element ' + elementName + ' does not have validate function');
+        return;
+      }
+
+      if (elt.hasOwnProperty('schema')) {
+        elt.schema = this.schema;
+      }
+
+      elt.value = this.value;
+      elt.addEventListener('value-changed', this._handleElementValueChanged.bind(this));
+      
+      Polymer.dom(this.$.coreModal).insertBefore(elt, this.$.buttonContainer);
+
+      Polymer.dom(this.$.eltPlaceholder).setAttribute('hidden', '');
+      Polymer.dom(this.$.buttonContainer).removeAttribute('hidden');
+
+      var isValid = elt.validate();
+      this.toggleAttribute('disabled', isValid, this.$.okButton);
+    },
+
+    _handleElementValueChanged: function(event) {
+      var isValid = event.target.validate(true);
+      this.toggleAttribute('disabled', !isValid, this.$.okButton);
+    },
+
+    _handleCancelButtonTap: function(event) {
+      this.close();
+    },
+
+    _handleOkButtonTap: function(event) {
+      this.close();
+
+      this.value = event.detail.value;
+      this.fire('value-changed', { value: this.value }, { bubbles: false });
+    },
+
+    // 
+    // public api
+    // 
+    open: function() {
+      this.$.coreModal.open();
+    },
+
+    close: function() {
+      this.$.coreModal.close();
+    },
+
+    // 
+    // helper functions 
+    // 
+    _setPlaceholder: function() {
+      Polymer.dom(this.$.eltPlaceholder).innerHTML = this._placeholderText;
+      Polymer.dom(this.$.eltPlaceholder).classList.remove('error');
+      Polymer.dom(this.$.eltPlaceholder).classList.remove('information');
+      Polymer.dom(this.$.eltPlaceholder).textContent = '';
+    },
+
+    _setError: function(text) {
+      Polymer.dom(this.$.eltPlaceholder).innerHTML = '';
+      Polymer.dom(this.$.eltPlaceholder).classList.add('error');
+      Polymer.dom(this.$.eltPlaceholder).textContent = text;
+    },
+
+    _setInformation: function(text) {
+      Polymer.dom(this.$.eltPlaceholder).innerHTML = '';
+      Polymer.dom(this.$.eltPlaceholder).classList.add('info');
+      Polymer.dom(this.$.eltPlaceholder).textContent = text;
+    },
+
+    _isString: function(obj) { return Object.prototype.toString.call(obj) === "[object String]"; },
+    _isFunction: function(obj) { return Object.prototype.toString.call(obj) === "[object Function]"; }
   });
 </script>
