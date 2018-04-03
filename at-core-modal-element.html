@@ -68,6 +68,7 @@
     },
 
     _placeholderText: '<div class="placeholder-text"></div><div class="placeholder-text mtsm"></div>',
+    _referenceTypeStrings: [ "[object Object]", "[object Array]" ],
 
     ready: function() {
     },
@@ -148,8 +149,10 @@
         elt.autoValidate = true;
         elt.schema = this.schema;
       }
+      
+      // NOTE: There is no need to set value here because value is set in open function
+      // elt.value = this.value;
 
-      elt.value = JSON.parse(JSON.stringify(this.value));
       elt.addEventListener('value-changed', this._handleElementValueChanged.bind(this));
 
       Polymer.dom(this.$.coreModal).insertBefore(elt, this.$.buttonContainer);
@@ -220,7 +223,8 @@
       var epxValueType = this._getExpectedValueType(elt);
 
       var actValue = newValue;
-      if (expValueType === "[object Object]" && this._isString(newValue)) {
+      if (this._referenceTypeStrings.indexOf(expValueType) > -1 && this._isString(newValue)) {
+        // parse JSON strings of arrays or objects
         try {
           actValue = JSON.parse(newValue);
         } catch (e) { 
@@ -229,7 +233,6 @@
         }
       }
 
-      var expValueType = this._getTypeString(elt.value);
       var actValueType = this._getTypeString(actValue);
       if (actValueType !== expValueType) {
         this._setError('Value type mismatch. Type of ' + expValueType + ' was expected but ' + actValueType + ' was given instead.');
@@ -248,17 +251,18 @@
     // public api
     // 
     open: function() {
-      // clear initial validation errors because validation errors should be displayed only as result of user interaction
       var elt = this._getRenderedElement();
       if (!elt) return;
+
       var expValueType = this._getExpectedValueType(elt);
-      if (expValueType === "[object Object]") {
-        var eltValue = this._isObject(this.value) ? this.value : {};
+      if (this._referenceTypeStrings.indexOf(expValueType) > -1) {
         elt.value = JSON.parse(JSON.stringify(eltValue));
 
       } else {
         elt.value = this.value;
       }
+
+      // clear initial validation errors because validation errors should be displayed only as result of user interaction
       elt.validate(false);
 
       this.$.coreModal.open();
