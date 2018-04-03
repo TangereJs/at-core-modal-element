@@ -147,8 +147,8 @@
         elt.autoValidate = true;
         elt.schema = this.schema;
       }
-
-      elt.value = this.value;      
+      
+      elt.value = JSON.parse(JSON.stringify(this.value));
       elt.addEventListener('value-changed', this._handleElementValueChanged.bind(this));
       
       Polymer.dom(this.$.coreModal).insertBefore(elt, this.$.buttonContainer);
@@ -172,7 +172,9 @@
     _handleOkButtonTap: function(event) {
       this.close();
 
-      this.value = event.detail.value;
+      var elt = Polymer.dom(this.$.coreModal).firstElementChild;
+      if (elt.id === "buttonContainer") return;
+      this.value = JSON.parse(JSON.stringify(elt.value));
       this.fire('value-changed', { value: this.value }, { bubbles: false });
     },
 
@@ -209,6 +211,7 @@
       // clear initial validation errors because validation errors should be displayed only as result of user interaction
       var elt = Polymer.dom(this.$.coreModal).firstElementChild;
       if (elt.id === "buttonContainer") return;
+      elt.value = JSON.parse(JSON.stringify(this.value));
       elt.validate(false);
 
       this.$.coreModal.open();
