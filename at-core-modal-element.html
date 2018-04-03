@@ -217,8 +217,10 @@
         return;
       }
 
+      var epxValueType = this._getExpectedValueType(elt);
+
       var actValue = newValue;
-      if (this._isString(newValue)) {
+      if (expValueType === "[object Object]" && this._isString(newValue)) {
         try {
           actValue = JSON.parse(newValue);
         } catch (e) { 
@@ -249,8 +251,14 @@
       // clear initial validation errors because validation errors should be displayed only as result of user interaction
       var elt = this._getRenderedElement();
       if (!elt) return;
-      var eltValue = this._isObject(this.value) ? this.value : {};
-      elt.value = JSON.parse(JSON.stringify(eltValue));
+      var expValueType = this._getExpectedValueType(elt);
+      if (expValueType === "[object Object]") {
+        var eltValue = this._isObject(this.value) ? this.value : {};
+        elt.value = JSON.parse(JSON.stringify(eltValue));
+
+      } else {
+        elt.value = this.value;
+      }
       elt.validate(false);
 
       this.$.coreModal.open();
@@ -291,7 +299,13 @@
       return elt;
     },
 
-
+    _getExpectedValueType: function(elt) {
+      var value = elt.properties.value.value;
+      if (this._isFunction(value)) {
+        value = value();
+      }
+      return this._getTypeString(value);
+    },
 
     _isString: function(obj) { return Object.prototype.toString.call(obj) === "[object String]"; },
     _isFunction: function(obj) { return Object.prototype.toString.call(obj) === "[object Function]"; },
