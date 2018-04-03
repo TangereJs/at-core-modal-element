@@ -27,7 +27,7 @@
     </style>
 
     <div id="eltPlaceholder" class="font-body1"></div>
-    
+
     <at-core-modal id="coreModal">
       <div id="buttonContainer" class="layout-horizontal layout-center-justified mt" hidden>
         <at-carbon-button raised class="cancel-btn" label="Cancel" on-tap="_handleCancelButtonTap"></at-carbon-button>
@@ -62,7 +62,8 @@
         type: Object,
         value: function() {
           return {};
-        }
+        },
+        observer: '_valueChanged'
       }
     },
 
@@ -147,10 +148,10 @@
         elt.autoValidate = true;
         elt.schema = this.schema;
       }
-      
+
       elt.value = JSON.parse(JSON.stringify(this.value));
       elt.addEventListener('value-changed', this._handleElementValueChanged.bind(this));
-      
+
       Polymer.dom(this.$.coreModal).insertBefore(elt, this.$.buttonContainer);
 
       Polymer.dom(this.$.eltPlaceholder).setAttribute('hidden', '');
@@ -172,8 +173,9 @@
     _handleOkButtonTap: function(event) {
       this.close();
 
-      var elt = Polymer.dom(this.$.coreModal).firstElementChild;
-      if (elt.id === "buttonContainer") return;
+      var elt = this._getRenderedElement();
+      if (!elt) return;
+
       this.value = JSON.parse(JSON.stringify(elt.value));
       this.fire('value-changed', { value: this.value }, { bubbles: false });
     },
@@ -183,10 +185,10 @@
       if (this._isString(newValue)) {
         try {
           schemaObj = JSON.parse(newValue);
-        } catch(e) { }
+        } catch (e) { }
       }
 
-      if (!this._isObject(schemaObj))  {
+      if (!this._isObject(schemaObj)) {
         this._setError('Schema must be an object that has properties property as object, or the JSON string of the former.');
         return;
       }
@@ -198,10 +200,46 @@
 
       Polymer.dom(this.$.eltPlaceholder).setAttribute('hidden', '');
 
-      var elt = Polymer.dom(this.$.coreModal).firstElementChild;
-      if (elt.id === "buttonContainer") return;
+      var elt = this._getRenderedElement();
+      if (!elt) return;
 
       elt.schema = schemaObj;
+    },
+
+    _valueChanged: function(newValue, oldValue) {
+      var elt = this._getRenderedElement();
+      if (!elt) return; 
+
+      Polymer.dom(this.$.eltPlaceholder).setAttribute('hidden', '');
+
+      if (newValue === null || newValue === undefined) {
+        elt.value = newValue;
+        return;
+      }
+
+      var actValue = newValue;
+      if (this._isString(newValue)) {
+        try {
+          actValue = JSON.parse(newValue);
+        } catch (e) { 
+          this._setError('Invalid value json string: ' + e);
+          return;
+        }
+      }
+
+      var expValueType = this._getTypeString(elt.value);
+      var actValueType = this._getTypeString(actValue);
+      if (actValueType !== expValueType) {
+        this._setError('Value type mismatch. Type of ' + expValueType + ' was expected but ' + actValueType + ' was given instead.');
+        return;
+      }
+
+      if (newValue !== null && typeof newValue === "object") {
+        elt.value = JSON.parse(JSON.stringify(newValue));
+
+      } else {
+        elt.value = newValue;
+      }
     },
 
     // 
@@ -209,9 +247,10 @@
     // 
     open: function() {
       // clear initial validation errors because validation errors should be displayed only as result of user interaction
-      var elt = Polymer.dom(this.$.coreModal).firstElementChild;
-      if (elt.id === "buttonContainer") return;
-      elt.value = JSON.parse(JSON.stringify(this.value));
+      var elt = this._getRenderedElement();
+      if (!elt) return;
+      var eltValue = this._isObject(this.value) ? this.value : {};
+      elt.value = JSON.parse(JSON.stringify(eltValue));
       elt.validate(false);
 
       this.$.coreModal.open();
@@ -246,8 +285,17 @@
       Polymer.dom(this.$.eltPlaceholder).removeAttribute('hidden');
     },
 
+    _getRenderedElement: function() {
+      var elt = Polymer.dom(this.$.coreModal).firstElementChild;
+      if (elt.id === "buttonContainer") return null;
+      return elt;
+    },
+
+
+
     _isString: function(obj) { return Object.prototype.toString.call(obj) === "[object String]"; },
     _isFunction: function(obj) { return Object.prototype.toString.call(obj) === "[object Function]"; },
-    _isObject: function(obj) { return Object.prototype.toString.call(obj) === "[object Object]"; }
+    _isObject: function(obj) { return Object.prototype.toString.call(obj) === "[object Object]"; },
+    _getTypeString: function(obj) { return Object.prototype.toString.call(obj); }
   });
 </script>
