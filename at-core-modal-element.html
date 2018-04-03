@@ -256,7 +256,7 @@
 
       var expValueType = this._getExpectedValueType(elt);
       if (this._referenceTypeStrings.indexOf(expValueType) > -1) {
-        elt.value = JSON.parse(JSON.stringify(eltValue));
+        elt.value = JSON.parse(JSON.stringify(this.value));
 
       } else {
         elt.value = this.value;
