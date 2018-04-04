@@ -44,8 +44,12 @@
 
       elementName: {
         type: String,
-        value: '',
-        observer: '_initialize'
+        value: ''
+      },
+
+      elementClass: {
+        type: String,
+        value: 'm'
       },
 
       schema: {
@@ -68,29 +72,39 @@
     },
 
     _placeholderText: '<div class="placeholder-text"></div><div class="placeholder-text mtsm"></div>',
-    _referenceTypeStrings: [ "[object Object]", "[object Array]" ],
+    _referenceTypeStrings: ["[object Object]", "[object Array]"],
+
+    observers: [
+      '_initialize(elementName, elementClass)'
+    ],
 
     ready: function() {
     },
 
-    _initialize: function(newValue, oldValue) {
+    _initialize: function(elementName, elementClass) {
       Polymer.dom(this.$.eltPlaceholder).removeAttribute('hidden');
       this._setPlaceholder();
 
-      if (!this._isString(newValue)) {
+      if (!this._isString(elementName)) {
         this._setError('Component name is not a string.');
         return;
       }
 
-      if (!newValue.length) {
+      if (!elementName.length) {
         this._setInformation('Component name is empty.');
         return;
       }
-
-      this._internalInitialize(newValue);
+      
+      var classes = [];
+      var tmp = elementClass.split(" ");
+      tmp.forEach(function(clsName) {
+        if (!clsName.length) return;
+        classes.push(clsName);
+      });
+      this._internalInitialize(elementName, classes);
     },
 
-    _internalInitialize: function(elementName) {
+    _internalInitialize: function(elementName, classes) {
       // compute importHref
       var importUrl = elementName;
       var fsIndex = importUrl.indexOf("/");
@@ -124,7 +138,7 @@
         var href = event.target.href;
         var elementName = href.substring(href.lastIndexOf("/") + 1);
         elementName = elementName.replace(".html", "");
-        renderUI(elementName);
+        renderUI(elementName, classes);
 
       }, function(event) {
         setError("An error occured while importing " + importUrl);
@@ -132,8 +146,12 @@
       }, true);
     },
 
-    _renderUI: function(elementName) {
+    _renderUI: function(elementName, classes) {
       var elt = this.create(elementName);
+      
+      classes.forEach(function(clsName) { 
+        Polymer.dom(elt).classList.add(clsName);
+      });
 
       if (!elt.properties.hasOwnProperty('value')) {
         this._setError('Element ' + elementName + ' does not have value property');
@@ -149,7 +167,7 @@
         elt.autoValidate = true;
         elt.schema = this.schema;
       }
-      
+
       // NOTE: There is no need to set value here because value is set in open function
       // elt.value = this.value;
 
@@ -211,7 +229,7 @@
 
     _valueChanged: function(newValue, oldValue) {
       var elt = this._getRenderedElement();
-      if (!elt) return; 
+      if (!elt) return;
 
       Polymer.dom(this.$.eltPlaceholder).setAttribute('hidden', '');
 
