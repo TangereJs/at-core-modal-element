@@ -180,7 +180,12 @@
     },
 
     _renderUI: function(elementName, classes) {
-      var elt = this.create(elementName);
+      var elt = this._getRenderedElement();
+      if (elt) {
+        Polymer.dom(Polymer.dom(elt).parentNode).removeChild(elt);
+      }
+      
+      elt = this.create(elementName);
 
       classes.forEach(function(clsName) {
         Polymer.dom(elt).classList.add(clsName);
