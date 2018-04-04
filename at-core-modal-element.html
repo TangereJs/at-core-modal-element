@@ -2,6 +2,7 @@
 <link rel="import" href="../at-core-style-classes/at-core-style-classes.html">
 <link rel="import" href="../at-carbon-button/at-carbon-button.html">
 <link rel="import" href="../at-core-modal/at-core-modal.html">
+<link rel="import" href="../at-core-activity/at-core-activity.html">
 
 <dom-module id="at-core-modal-element">
   <template>
@@ -35,6 +36,8 @@
       </div>
     </at-core-modal>
 
+    <at-core-activity id="schemaActivity" url="[[schemaUrl]]" content-type="application/json" on-response="_handleSchemaActivityResponse"
+      on-error="_handleSchemaActivityError"></at-core-activity>
   </template>
 </dom-module>
 <script>
@@ -50,6 +53,11 @@
       elementClass: {
         type: String,
         value: 'm'
+      },
+
+      schemaUrl: {
+        type: String,
+        value: ''
       },
 
       schema: {
@@ -75,13 +83,13 @@
     _referenceTypeStrings: ["[object Object]", "[object Array]"],
 
     observers: [
-      '_initialize(elementName, elementClass)'
+      '_initialize(elementName, elementClass, schemaUrl)'
     ],
 
     ready: function() {
     },
 
-    _initialize: function(elementName, elementClass) {
+    _initialize: function(elementName, elementClass, schemaUrl) {
       Polymer.dom(this.$.eltPlaceholder).removeAttribute('hidden');
       this._setPlaceholder();
 
@@ -95,13 +103,34 @@
         return;
       }
       
-      var classes = [];
-      var tmp = elementClass.split(" ");
-      tmp.forEach(function(clsName) {
-        if (!clsName.length) return;
-        classes.push(clsName);
-      });
-      this._internalInitialize(elementName, classes);
+      if (schemaUrl) {
+        this.$.schemaActivity.generateRequest();
+
+      } else {
+        var classes = this._computeClassList(elementClass);
+        this._internalInitialize(elementName, classes);
+      }
+    },
+
+    _handleSchemaActivityError: function(error) {
+      // do nothing; at-core-activity will display an error
+    },
+
+    _handleSchemaActivityResponse: function(response) {
+      var newSchema = response.detail;
+
+      if (!newSchema.hasOwnProperty('properties')) {
+        this._setError('Schema must be an object that has properties property as object, or the JSON string of the former.');
+        return;
+      }
+
+      var schemaChangedFn = this._schemaChanged;
+      this._schemaChanged = function() { };
+      this.schema = newSchema;
+      this._schemaChanged = schemaChangedFn;
+      
+      var classes = this._computeClassList(this.elementClass);
+      this._internalInitialize(this.elementName, classes);
     },
 
     _internalInitialize: function(elementName, classes) {
@@ -148,8 +177,8 @@
 
     _renderUI: function(elementName, classes) {
       var elt = this.create(elementName);
-      
-      classes.forEach(function(clsName) { 
+
+      classes.forEach(function(clsName) {
         Polymer.dom(elt).classList.add(clsName);
       });
 
@@ -202,6 +231,9 @@
     },
 
     _schemaChanged: function(newValue, oldValue) {
+      // if schemaUrl is set ignore locally set schema
+      if (this.schemaUrl) return;
+
       var schemaObj = newValue;
       if (this._isString(newValue)) {
         try {
@@ -327,6 +359,16 @@
         value = value();
       }
       return this._getTypeString(value);
+    },
+
+    _computeClassList: function(elementClass) {
+      var classes = [];
+      var tmp = elementClass.split(" ");
+      tmp.forEach(function(clsName) {
+        if (!clsName.length) return;
+        classes.push(clsName);
+      });
+      return classes;
     },
 
     _isString: function(obj) { return Object.prototype.toString.call(obj) === "[object String]"; },
