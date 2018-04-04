@@ -129,7 +129,7 @@
 
       if (window.ComponentsBase != undefined) compUrl = window.ComponentsBase;
 
-      importUrl = fsIndex >= 0 ? compUrl + importUrl + ".html" : importUrl + ".html";
+      importUrl = fsIndex >= 0 ? compUrl + elementName + ".html" : importUrl + ".html";
 
       var renderUI = this._renderUI.bind(this);
       var setError = this._setError.bind(this);
