@@ -106,7 +106,7 @@
         this._setInformation('Component name is empty.');
         return;
       }
-      
+
       if (schemaUrl) {
         this.$.schemaActivity.generateRequest();
 
@@ -132,7 +132,7 @@
       this._schemaChanged = function() { };
       this.schema = newSchema;
       this._schemaChanged = schemaChangedFn;
-      
+
       var classes = this._computeClassList(this.elementClass);
       this._internalInitialize(this.elementName, classes);
     },
