@@ -32,9 +32,11 @@
     <div id="eltPlaceholder" class="font-body1"></div>
 
     <at-core-modal id="coreModal" on-close-modal="_handleCloseModal">
-      <div id="buttonContainer" class$="layout-horizontal layout-center-justified [[elementClass]]" hidden>
-        <at-carbon-button raised class="cancel-btn" label="Cancel" on-tap="_handleCancelButtonTap"></at-carbon-button>
-        <at-carbon-button id="okButton" disabled raised class="ok-btn" label="OK" on-tap="_handleOkButtonTap"></at-carbon-button>
+      <div id="modalContent" class$="[[elementClass]]">
+        <div id="buttonContainer" class="layout-horizontal layout-center-justified" hidden>
+          <at-carbon-button raised class="cancel-btn" label="Cancel" on-tap="_handleCancelButtonTap"></at-carbon-button>
+          <at-carbon-button id="okButton" disabled raised class="ok-btn" label="OK" on-tap="_handleOkButtonTap"></at-carbon-button>
+        </div>
       </div>
     </at-core-modal>
 
@@ -85,7 +87,7 @@
     _referenceTypeStrings: ["[object Object]", "[object Array]"],
 
     observers: [
-      '_initialize(elementName, elementClass, schemaUrl)'
+      '_initialize(elementName, schemaUrl)'
     ],
 
     _handleCloseModal: function(event) {
@@ -95,7 +97,7 @@
     ready: function() {
     },
 
-    _initialize: function(elementName, elementClass, schemaUrl) {
+    _initialize: function(elementName, schemaUrl) {
       Polymer.dom(this.$.eltPlaceholder).removeAttribute('hidden');
       this._setPlaceholder();
 
@@ -113,8 +115,7 @@
         this.$.schemaActivity.generateRequest();
 
       } else {
-        var classes = this._computeClassList(elementClass);
-        this._internalInitialize(elementName, classes);
+        this._internalInitialize(elementName);
       }
     },
 
@@ -147,11 +148,10 @@
       this.schema = newSchema;
       this._schemaChanged = schemaChangedFn;
 
-      var classes = this._computeClassList(this.elementClass);
-      this._internalInitialize(this.elementName, classes);
+      this._internalInitialize(this.elementName);
     },
 
-    _internalInitialize: function(elementName, classes) {
+    _internalInitialize: function(elementName) {
       // compute importHref
       var importUrl = elementName;
       var fsIndex = importUrl.indexOf("/");
@@ -185,7 +185,7 @@
         var href = event.target.href;
         var elementName = href.substring(href.lastIndexOf("/") + 1);
         elementName = elementName.replace(".html", "");
-        renderUI(elementName, classes);
+        renderUI(elementName);
 
       }, function(event) {
         setError("An error occured while importing " + importUrl);
@@ -193,17 +193,13 @@
       }, true);
     },
 
-    _renderUI: function(elementName, classes) {
+    _renderUI: function(elementName) {
       var elt = this._getRenderedElement();
       if (elt) {
         Polymer.dom(Polymer.dom(elt).parentNode).removeChild(elt);
       }
-      
-      elt = this.create(elementName);
 
-      classes.forEach(function(clsName) {
-        Polymer.dom(elt).classList.add(clsName);
-      });
+      elt = this.create(elementName);
 
       if (!elt.properties.hasOwnProperty('value')) {
         this._setError('Element ' + elementName + ' does not have value property');
@@ -225,7 +221,7 @@
 
       elt.addEventListener('value-changed', this._handleElementValueChanged.bind(this));
 
-      Polymer.dom(this.$.coreModal).insertBefore(elt, this.$.buttonContainer);
+      Polymer.dom(this.$.modalContent).insertBefore(elt, this.$.buttonContainer);
 
       Polymer.dom(this.$.eltPlaceholder).setAttribute('hidden', '');
       Polymer.dom(this.$.buttonContainer).removeAttribute('hidden');
@@ -373,7 +369,7 @@
     },
 
     _getRenderedElement: function() {
-      var elt = Polymer.dom(this.$.coreModal).firstElementChild;
+      var elt = Polymer.dom(this.$.modalContent).firstElementChild;
       if (elt.id === "buttonContainer") return null;
       return elt;
     },
@@ -384,16 +380,6 @@
         value = value();
       }
       return this._getTypeString(value);
-    },
-
-    _computeClassList: function(elementClass) {
-      var classes = [];
-      var tmp = elementClass.split(" ");
-      tmp.forEach(function(clsName) {
-        if (!clsName.length) return;
-        classes.push(clsName);
-      });
-      return classes;
     },
 
     _isString: function(obj) { return Object.prototype.toString.call(obj) === "[object String]"; },
