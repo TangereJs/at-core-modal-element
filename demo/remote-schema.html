@@ -73,6 +73,17 @@
     </div>
   </div>
 
+  <div class="demo-row">
+    <h4 class="font-headline">This demo uses .form file with schema in yaml format</h4>
+    <div class="layout-horizontal elt-container">
+      <at-core-modal-element id="demo4" class="layout-flex" element-name="at-form-complex/at-form-complex" schema-url="test.form"></at-core-modal-element>
+      <button id="openBtn4" type="button" class="block">Open modal</button>
+    </div>
+    <div class="value-echo">
+      <span class="font-body1">Value changed echo:</span>
+      <pre id="valueChangeEcho4"></pre>
+    </div>
+  </div>
 
   <script> 
 
@@ -94,6 +105,7 @@
       initDemo('demo1', 'openBtn1', 'valueChangeEcho1');
       initDemo('demo2', 'openBtn2', 'valueChangeEcho2');
       initDemo('demo3', 'openBtn3', 'valueChangeEcho3');
+      initDemo('demo4', 'openBtn4', 'valueChangeEcho4');
     }); 
   </script>
 </body>

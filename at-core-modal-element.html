@@ -4,6 +4,8 @@
 <link rel="import" href="../at-core-modal/at-core-modal.html">
 <link rel="import" href="../at-core-activity/at-core-activity.html">
 
+<script src="lib/js-yaml.js"></script>
+
 <dom-module id="at-core-modal-element">
   <template>
     <style include="at-core-style-classes">
@@ -36,7 +38,7 @@
       </div>
     </at-core-modal>
 
-    <at-core-activity id="schemaActivity" url="[[schemaUrl]]" content-type="application/json" on-response="_handleSchemaActivityResponse"
+    <at-core-activity id="schemaActivity" url="[[schemaUrl]]" content-type="text/plain" handle-as="text" on-response="_handleSchemaActivityResponse"
       on-error="_handleSchemaActivityError"></at-core-activity>
   </template>
 </dom-module>
@@ -121,7 +123,19 @@
     },
 
     _handleSchemaActivityResponse: function(response) {
-      var newSchema = response.detail;
+      var newSchemaStr = response.detail;
+
+      try {
+        var newSchema = JSON.parse(newSchemaStr);
+      } catch(e) {
+        // try yaml
+        try {
+          newSchema = window.jsyaml.load(newSchemaStr);
+        } catch (e) {
+          this._setError('Data returned by remote service is not a json string nor yaml string.');
+          return;
+        }
+      }
 
       if (!newSchema.hasOwnProperty('properties')) {
         this._setError('Schema must be an object that has properties property as object, or the JSON string of the former.');
