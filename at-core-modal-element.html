@@ -28,10 +28,10 @@
         }
       }
     </style>
-
+    <at-core-media-query id="mediaQuery" query="(min-width: 800px)" on-query-matches-changed="_handleQueryMatches"></at-core-media-query>
     <div id="eltPlaceholder" class="font-body1"></div>
 
-    <at-core-modal id="coreModal" on-close-modal="_handleCloseModal">
+    <at-core-modal id="coreModal" on-close-modal="_handleCloseModal" wide$="[[wide]]">
       <div id="modalContent" class$="[[elementClass]]">
         <div id="buttonContainer" class="layout-horizontal layout-center-justified" hidden>
           <at-carbon-button raised class="cancel-btn" label="Cancel" on-tap="_handleCancelButtonTap"></at-carbon-button>
@@ -64,6 +64,11 @@
         value: ''
       },
 
+      wide: {
+        type: Boolean,
+        value: false,
+      },
+
       schema: {
         type: Object,
         value: function() {
@@ -94,10 +99,18 @@
       this.fire('close-modal', event.detail);
     },
 
+    _handleQueryMatches: function(event) {
+      var value = event.detail.value;
+      var elt = this._getRenderedElement();
+      if (!elt) return;
+      if (!elt.properties.hasOwnProperty('_layout')) return;
+      elt._layout = this.wide && value ? "horizontal" : "vertical";
+    },
+
     ready: function() {
     },
 
-    _initialize: function(elementName, schemaUrl) {
+    _initialize: function(elementName, schemaUrl, wide) {
       Polymer.dom(this.$.eltPlaceholder).removeAttribute('hidden');
       this._setPlaceholder();
 
@@ -115,7 +128,7 @@
         this.$.schemaActivity.generateRequest();
 
       } else {
-        this._internalInitialize(elementName);
+        this._internalInitialize(elementName, wide);
       }
     },
 
@@ -148,10 +161,10 @@
       this.schema = newSchema;
       this._schemaChanged = schemaChangedFn;
 
-      this._internalInitialize(this.elementName);
+      this._internalInitialize(this.elementName, this.wide);
     },
 
-    _internalInitialize: function(elementName) {
+    _internalInitialize: function(elementName, wide) {
       // compute importHref
       var importUrl = elementName;
       var fsIndex = importUrl.indexOf("/");
@@ -185,7 +198,7 @@
         var href = event.target.href;
         var elementName = href.substring(href.lastIndexOf("/") + 1);
         elementName = elementName.replace(".html", "");
-        renderUI(elementName);
+        renderUI(elementName, wide);
 
       }, function(event) {
         setError("An error occured while importing " + importUrl);
@@ -193,7 +206,7 @@
       }, true);
     },
 
-    _renderUI: function(elementName) {
+    _renderUI: function(elementName, wide) {
       var elt = this._getRenderedElement();
       if (elt) {
         Polymer.dom(Polymer.dom(elt).parentNode).removeChild(elt);
@@ -214,6 +227,10 @@
       if (elt.properties.hasOwnProperty('schema')) {
         elt.autoValidate = true;
         elt.schema = this.schema;
+      }
+
+      if (wide && this.$.mediaQuery.queryMatches && elt.properties.hasOwnProperty('_layout')) {
+        elt._layout = "horizontal";
       }
 
       // NOTE: There is no need to set value here because value is set in open function
