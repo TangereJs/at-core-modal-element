@@ -1,0 +1,44 @@
+<link rel="import" href="../../tangere/tangere.html" />
+
+
+<dom-module id="test-elt-5">
+  <template>
+    <style>
+      :host {
+        display: block;
+        box-sizing: border-box;
+      }
+    </style>
+    <div>This element has value property</div>
+    <div>This element has validate function</div>
+    <div>Value set is: <span>[[value]]</span></div>
+     <at-core-modal-element id="demo1" class="layout-flex" element-name="test-elt-4"></at-core-modal-element>
+     <button id="openBtn" type="button" class="block" >Open modal</button>
+  </template>
+</dom-module>
+<script>
+  Polymer({
+    is: "test-elt-5",
+
+    properties: {
+      value: {
+        type: String,
+        value: ''
+      }
+    },
+    
+    listeners: {
+      'openBtn.tap': '_open'
+    },
+
+    _open: function(e) {
+      this.$.demo1.open();
+    },
+
+    ready: function() {},
+    validate: function(result) {
+      return result;
+    }
+  });
+
+</script>

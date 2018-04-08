@@ -34,6 +34,10 @@
     <at-core-modal-element id="demo2" class="layout-flex" element-name="test-elt-4" value="lorem ipsum"></at-core-modal-element>
     <button id="openBtn2" type="button" class="block">Open modal</button>
   </div>
+  <div class="layout-horizontal debug-style">
+    <at-core-modal-element id="demo3" class="layout-flex" element-name="test-elt-5" value="lorem ipsum"></at-core-modal-element>
+    <button id="openBtn3" type="button" class="block">Open modal</button>
+  </div>
   <script> 
     function initDemo(eltSelector, btnSelector) {
       var demo = document.getElementById(eltSelector);
@@ -47,6 +51,7 @@
     document.addEventListener('WebComponentsReady', function() {
       initDemo('demo1', 'openBtn1');
       initDemo('demo2', 'openBtn2');
+      initDemo('demo3', 'openBtn3');
     }); 
   </script>
 </body>
