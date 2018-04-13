@@ -75,7 +75,8 @@
           return {
             properties: {}
           };
-        }
+        },
+        observer: '_schemaChanged'
       },
 
       value: {
@@ -91,7 +92,8 @@
     // public api
     // 
     open: function() {
-      this._initialize();
+      // _initialize will return undefined if elementName or schemaUrl property is invalid
+      if (!this._initialize()) return;
 
       this.$.coreModal.open();
     },
@@ -108,66 +110,116 @@
     _initialize: function() {
       if (!this._isString(this.elementName)) {
         this._setError('Component name is not a string.');
-        this.$.coreModal.close();
         return;
       }
-      
+
       if (!this.elementName.length) {
         this._setInformation('Component name is empty.');
+        return;
+      }
+
+      if (!this._isString(this.schemaUrl)) {
+        this._setError('schemaUrl is not a string.');
+        return;
+      }
+
+      // check if element with elementName is already rendered
+      var elt = this._getRenderedElement();
+      if (!elt) {
+        // if not import and render it
+        this._importAndRender();
+        return true;
+      }
+
+      // check if this.elementName property changed
+      var importUrl = this._computeImportUrl(this.elementName);
+      var elementName = this._computeElementName(importUrl);
+
+      if (elt.is !== elementName) {
+        // elementName changed; remove old element 
+        Polymer.dom(this.$.modalContent).removeChild(elt);
+        elt = null;
+        // import new element and re-render
+        this._importAndRender();
+        return true;
+      }
+      
+      // request to fetch schema from schemaUrl should not be sent before open is called
+      // if schemaUrl changed between calls to .open() fetch new schema
+      // if request was sent return
+      if(this._fetchSchemaFromUrl(elt)) return true;
+      
+      // set value on elt
+      this._setEltValue(elt);
+      
+      // clear validation errors from UI, because validation errors should be displayed only as result of user interaction
+      var isValid = elt.validate(false);
+      // if element is invalid disable ok button
+      this.toggleAttribute('disabled', !isValid, this.$.okButton);
+
+      return true;
+    },
+    
+    _importAndRender: function() {
+      this._setPlaceholder();
+
+      var importUrl = this._computeImportUrl(this.elementName);
+      var self = this;
+
+      if (!this._boundHandleImportSuccess) {
+        this._boundHandleImportSuccess = this._handleImportSuccess.bind(this);
+      }
+
+      this.importHref(importUrl,
+        this._boundHandleImportSuccess,
+        function(event) {
+          self._setError("An error occured while importing " + importUrl);
+          // modal is open at this point; close it so that error message is visible
+          self.$.coreModal.close();
+
+        }, true);
+    },
+
+    _handleImportSuccess: function(event) {
+      var elementName = this._computeElementName(event.target.href);
+      var elt = this.create(elementName);
+
+      if (!elt.properties.hasOwnProperty('value')) {
+        this._setError('Element ' + elementName + ' does not have value property');
+        // modal is open at this point; close it so that error message is visible
         this.$.coreModal.close();
         return;
       }
 
-      var elt = Polymer.dom(this.$.modalContent).firstElementChild;
-      if (elt.id === "buttonContainer") {
-        // this is the first time _initialize is called; set placeholder
-        this._setPlaceholder();
-      
-      } else {
-        var importUrl = this._computeImportUrl(this.elementName);
-        var elementName = this._computeElementName(importUrl);
-        
-        if (elt.is !== elementName) {
-          // elementName changed; remove old element 
-          Polymer.dom(this.$.modalContent).removeChild(elt);
-         
-          // import new element and re-render
-          this._setPlaceholder();
-          this._internalInitialize();
-          return;
-        }
-        
-        // we already have the element rendered; just set value and validate
-        elt.value = JSON.parse(JSON.stringify(this.value));
-        var isValid = elt.validate(false);
-        this.toggleAttribute('disabled', !isValid, this.$.okButton);
-
+      if (!this._isFunction(elt.validate)) {
+        this._setError('Element ' + elementName + ' does not have validate function');
+        // modal is open at this point; close it so that error message is visible
+        this.$.coreModal.close();
         return;
       }
 
-      if (this.schemaUrl) {
-        this.$.schemaActivity.generateRequest();
-
-      } else {
-        var schemaObj = this.schema;
-        if (this._isString(this.schema)) {
-          try {
-            schemaObj = JSON.parse(this.schema);
-          } catch (e) { }
-        }
-
-        if (!this._isObject(schemaObj)) {
-          this._setError('Schema must be an object that has properties property as object, or the JSON string of the former.');
-          return;
-        }
-
-        if (!schemaObj.hasOwnProperty('properties')) {
-          this._setError('Schema must be an object that has properties property as object, or the JSON string of the former.');
-          return;
-        }
-
-        this._internalInitialize();
+      if (this._fetchSchemaFromUrl(elt)) { 
+        // keep reference of created element for latter use
+        this._uiElts.renderedElt = elt;
+        return;
       }
+
+      this._renderUI(elt);
+    },
+
+    _fetchSchemaFromUrl: function(elt) {
+      // if elt is an element that doesn't have schema property sending the request doesn't make sense
+      var hasSchemaProp = this._isObject(elt.properties) && elt.properties.hasOwnProperty('schema');
+      if (!hasSchemaProp) return false;
+      
+      var schemaUrlChanged = this._lastSchemaUrl !== this.schemaUrl;
+      if (!schemaUrlChanged) return false;
+      
+      this._lastSchemaUrl = this.schemaUrl;
+      if (!this.schemaUrl.length) return false;
+      
+      this.$.schemaActivity.generateRequest();
+      return true;
     },
 
     _handleSchemaActivityError: function(error) {
@@ -194,59 +246,31 @@
         return;
       }
 
+      // var schemaChangedFn = this._schemaChanged;
+      // this._schemaChanged = function() {};
       this.schema = newSchema;
+      // this._schemaChanged = schemaChangedFn;
 
-      this._internalInitialize();
+      var elt = this._uiElts.renderedElt;
+      this._uiElts.renderedElt = null;
+      this._renderUI(elt);
     },
 
-    _internalInitialize: function() {
-      var importUrl = this._computeImportUrl(this.elementName);
-      var self = this;
-
-      this.importHref(importUrl, function(event) {
-        var elementName = self._computeElementName(event.target.href);
-        self._renderUI(elementName);
-
-      }, function(event) {
-        self._setError("An error occured while importing " + importUrl);
-
-      }, true);
-    },
-
-    _renderUI: function(elementName) {
-      // on first render we will have placeholder in the UI
-      // on subsequent renders we will have actual rendered element here
-      var elt = Polymer.dom(this.$.modalContent).firstElementChild;
-      if (elt.nodeName === "DIV") {
-        this._clearPlaceholder();
-      }
-
-      elt = this.create(elementName);
-
-      if (!elt.properties.hasOwnProperty('value')) {
-        this._setError('Element ' + elementName + ' does not have value property');
-        return;
-      }
-
-      if (!this._isFunction(elt.validate)) {
-        this._setError('Element ' + elementName + ' does not have validate function');
-        return;
-      }
-
-      if (elt.properties.hasOwnProperty('schema')) {
+    _renderUI: function(elt) {
+      // we need to assign elt.schema here for when elt is imported and rendered for the first time and schema is set before .open() is called
+      if (this._isObject(elt.properties) && elt.properties.hasOwnProperty('schema')) {
         elt.autoValidate = true;
         elt.schema = this.schema;
       }
-
-      // NOTE: There is no need to set value here because value is set in open function
-      elt.value = this.value;
+      // we need to assign elt.value here for when elt is imported and rendered for the first time and value is set before .open() is called
+      this._setEltValue(elt);
 
       elt.addEventListener('value-changed', this._handleElementValueChanged.bind(this));
-
+      
+      this._clearPlaceholder();
       Polymer.dom(this.$.modalContent).insertBefore(elt, this.$.buttonContainer);
 
       Polymer.dom(this.$.messages).setAttribute('hidden', '');
-
       Polymer.dom(this.$.buttonContainer).removeAttribute('hidden');
 
       var isValid = elt.validate(false);
@@ -272,8 +296,36 @@
       this.fire('value-changed', { value: this.value }, { bubbles: false });
     },
 
+    _schemaChanged: function(newValue, oldValue) {
+      // if schemaUrl is set ignore locally set schema
+      if (this.schemaUrl) return;
+
+      var elt = this._getRenderedElement();
+      if (!elt) return;
+
+      var schemaObj = newValue;
+      if (this._isString(newValue)) {
+        try {
+          schemaObj = JSON.parse(newValue);
+        } catch (e) { }
+      }
+
+      if (!this._isObject(schemaObj)) {
+        this._setError('Schema must be an object that has properties property as object, or the JSON string of the former.');
+        return;
+      }
+
+      if (!schemaObj.hasOwnProperty('properties')) {
+        this._setError('Schema must be an object that has properties property as object, or the JSON string of the former.');
+        return;
+      }
+
+      Polymer.dom(this.$.messages).setAttribute('hidden', '');
+
+      elt.schema = schemaObj;
+    },
+
     _valueChanged: function(newValue, oldValue) {
-      return;
       var elt = this._getRenderedElement();
       if (!elt) return;
 
@@ -302,13 +354,8 @@
         this._setError('Value type mismatch. Type of ' + expValueType + ' was expected but ' + actValueType + ' was given instead.');
         return;
       }
-
-      if (this._referenceTypeStrings.indexOf(actValueType) > -1) {
-        elt.value = JSON.parse(JSON.stringify(actValue));
-
-      } else {
-        elt.value = actValue;
-      }
+      
+      this._setEltValue(elt);
     },
 
     _handleCloseModal: function(event) {
@@ -353,7 +400,7 @@
       while (prevSib !== null) {
         var tmp = prevSib;
         prevSib = Polymer.dom(prevSib).previousSibling;
-        
+
         if (this._uiElts.placeholderElt.childNodes.length === 0) {
           this._uiElts.placeholderElt.appendChild(tmp);
 
@@ -399,6 +446,13 @@
       return elementName;
     },
 
+    _getRenderedElement: function() {
+      var elt = Polymer.dom(this.$.modalContent).firstElementChild;
+      if (elt.classList.contains("placeholder-text")) return null;
+      if (elt.id === "buttonContainer") return null;
+      return elt;
+    },
+
     _setError: function(text) {
       Polymer.dom(this.$.messages).innerHTML = '';
       Polymer.dom(this.$.messages).classList.remove('info');
@@ -415,8 +469,17 @@
       Polymer.dom(this.$.messages).removeAttribute('hidden');
     },
 
-    _getExpectedValueType: function(elt) {
+    _setEltValue: function(elt) {
+      var expValueType = this._getExpectedValueType(elt);
+      if (this._referenceTypeStrings.indexOf(expValueType) > -1) {
+        elt.value = JSON.parse(JSON.stringify(this.value));
 
+      } else {
+        elt.value = this.value;
+      }
+    },
+
+    _getExpectedValueType: function(elt) {
       var value = elt.properties.value.value;
       if (this._isFunction(value)) {
         value = value();
