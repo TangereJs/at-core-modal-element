@@ -143,15 +143,15 @@
         this._importAndRender();
         return true;
       }
-      
+
       // request to fetch schema from schemaUrl should not be sent before open is called
       // if schemaUrl changed between calls to .open() fetch new schema
       // if request was sent return
-      if(this._fetchSchemaFromUrl(elt)) return true;
-      
+      if (this._fetchSchemaFromUrl(elt)) return true;
+
       // set value on elt
       this._setEltValue(elt);
-      
+
       // clear validation errors from UI, because validation errors should be displayed only as result of user interaction
       var isValid = elt.validate(false);
       // if element is invalid disable ok button
@@ -159,7 +159,7 @@
 
       return true;
     },
-    
+
     _importAndRender: function() {
       this._setPlaceholder();
 
@@ -198,7 +198,7 @@
         return;
       }
 
-      if (this._fetchSchemaFromUrl(elt)) { 
+      if (this._fetchSchemaFromUrl(elt)) {
         // keep reference of created element for latter use
         this._uiElts.renderedElt = elt;
         return;
@@ -211,13 +211,13 @@
       // if elt is an element that doesn't have schema property sending the request doesn't make sense
       var hasSchemaProp = this._isObject(elt.properties) && elt.properties.hasOwnProperty('schema');
       if (!hasSchemaProp) return false;
-      
+
       var schemaUrlChanged = this._lastSchemaUrl !== this.schemaUrl;
       if (!schemaUrlChanged) return false;
-      
+
       this._lastSchemaUrl = this.schemaUrl;
       if (!this.schemaUrl.length) return false;
-      
+
       this.$.schemaActivity.generateRequest();
       return true;
     },
@@ -266,7 +266,7 @@
       this._setEltValue(elt);
 
       elt.addEventListener('value-changed', this._handleElementValueChanged.bind(this));
-      
+
       this._clearPlaceholder();
       Polymer.dom(this.$.modalContent).insertBefore(elt, this.$.buttonContainer);
 
