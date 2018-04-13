@@ -87,24 +87,24 @@
       }
     },
 
-    _placeholderText: '<div class="placeholder-text"></div><div class="placeholder-text mtsm"></div>',
-    _referenceTypeStrings: ["[object Object]", "[object Array]"],
+    // 
+    // public api
+    // 
+    open: function() {
+      this._initialize();
 
-    _handleCloseModal: function(event) {
-      this.fire('close-modal', event.detail);
+      this.$.coreModal.open();
     },
 
-    _handleQueryMatches: function(event) {
-      var value = event.detail.value;
-      var elt = this._getRenderedElement();
-      if (!elt) return;
-      if (!elt.properties.hasOwnProperty('_layout')) return;
-      elt._layout = this.wide && value ? "horizontal" : "vertical";
+    close: function(reason) {
+      this.$.coreModal.close(reason);
     },
 
-    ready: function() {
-    },
+    ready: function() { },
 
+    // 
+    // private api
+    // 
     _initialize: function() {
       if (!this._isString(this.elementName)) {
         this._setError('Component name is not a string.');
@@ -273,6 +273,7 @@
     },
 
     _valueChanged: function(newValue, oldValue) {
+      return;
       var elt = this._getRenderedElement();
       if (!elt) return;
 
@@ -310,22 +311,25 @@
       }
     },
 
-    // 
-    // public api
-    // 
-    open: function() {
-      this._initialize();
-
-      this.$.coreModal.open();
+    _handleCloseModal: function(event) {
+      this.fire('close-modal', event.detail);
     },
 
-    close: function(reason) {
-      this.$.coreModal.close(reason);
+    _handleQueryMatches: function(event) {
+      return;
+      var value = event.detail.value;
+      var elt = this._getRenderedElement();
+      if (!elt) return;
+      if (!elt.properties.hasOwnProperty('_layout')) return;
+      elt._layout = this.wide && value ? "horizontal" : "vertical";
     },
 
     // 
-    // helper functions 
+    // helper functions and properties
     //
+    _placeholderText: '<div class="placeholder-text"></div><div class="placeholder-text mtsm"></div>',
+    _referenceTypeStrings: ["[object Object]", "[object Array]"],
+
     _uiElts: {
       placeholderElt: null,
       renderedElt: null
@@ -412,6 +416,7 @@
     },
 
     _getExpectedValueType: function(elt) {
+
       var value = elt.properties.value.value;
       if (this._isFunction(value)) {
         value = value();
