@@ -88,10 +88,21 @@
       }
     },
 
+    observers: [
+      '_clearError(elementName, schemaUrl)'
+    ],
+
+    _clearError: function(elementName, schemaUrl) {
+      this._setError("");
+    },
+
     // 
     // public api
     // 
     open: function() {
+      // one can set invalid schema or value before open is called; in that case do not open modal so that error messages are visible
+      if (this._hasError()) return;
+
       // _initialize will return undefined if elementName or schemaUrl property is invalid
       if (!this._initialize()) return;
 
@@ -176,6 +187,7 @@
           self._setError("An error occured while importing " + importUrl);
           // modal is open at this point; close it so that error message is visible
           self.$.coreModal.close();
+          this._clearPlaceholder();
 
         }, true);
     },
@@ -223,7 +235,9 @@
     },
 
     _handleSchemaActivityError: function(error) {
-      // do nothing; at-core-activity will display an error
+      // close modal and clear placeholder, because next time _initialize is called placeholder should be set
+      this.$.coreModal.close();
+      this._clearPlaceholder();
     },
 
     _handleSchemaActivityResponse: function(response) {
@@ -237,19 +251,23 @@
           newSchema = window.jsyaml.load(newSchemaStr);
         } catch (e) {
           this._setError('Data returned by remote service is not a json string nor yaml string.');
+          // close modal and clear placeholder, because next time _initialize is called placeholder should be set
+          this.$.coreModal.close();
+          this._clearPlaceholder();
           return;
         }
       }
 
       if (!newSchema.hasOwnProperty('properties')) {
         this._setError('Schema must be an object that has properties property as object, or the JSON string of the former.');
+        // close modal and clear placeholder, because next time _initialize is called placeholder should be set
+        this.$.coreModal.close();
+        this._clearPlaceholder();
         return;
       }
 
-      // var schemaChangedFn = this._schemaChanged;
-      // this._schemaChanged = function() {};
+      // this will trigger _schemaChanged but since schemaUrl is set _schemaChanged will return immediatelly
       this.schema = newSchema;
-      // this._schemaChanged = schemaChangedFn;
 
       var elt = this._uiElts.renderedElt;
       this._uiElts.renderedElt = null;
@@ -320,6 +338,8 @@
         return;
       }
 
+      this._setError("");
+
       Polymer.dom(this.$.messages).setAttribute('hidden', '');
 
       elt.schema = schemaObj;
@@ -354,7 +374,9 @@
         this._setError('Value type mismatch. Type of ' + expValueType + ' was expected but ' + actValueType + ' was given instead.');
         return;
       }
-      
+
+      this._setError("");
+
       this._setEltValue(elt);
     },
 
@@ -451,6 +473,10 @@
       if (elt.classList.contains("placeholder-text")) return null;
       if (elt.id === "buttonContainer") return null;
       return elt;
+    },
+
+    _hasError: function() {
+      return this.$.messages.textContent.length > 0;
     },
 
     _setError: function(text) {
