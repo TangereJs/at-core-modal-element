@@ -29,7 +29,7 @@
       }
     </style>
     <at-core-media-query id="mediaQuery" query="(min-width: 800px)" on-query-matches-changed="_handleQueryMatches"></at-core-media-query>
-    <div id="eltPlaceholder" class="font-body1"></div>
+    <div id="messages" class="font-body1"></div>
 
     <at-core-modal id="coreModal" on-close-modal="_handleCloseModal" wide$="[[wide]]">
       <div id="modalContent" class$="[[elementClass]]">
@@ -75,8 +75,7 @@
           return {
             properties: {}
           };
-        },
-        observer: '_schemaChanged'
+        }
       },
 
       value: {
@@ -90,10 +89,6 @@
 
     _placeholderText: '<div class="placeholder-text"></div><div class="placeholder-text mtsm"></div>',
     _referenceTypeStrings: ["[object Object]", "[object Array]"],
-
-    observers: [
-      '_initialize(elementName, schemaUrl)'
-    ],
 
     _handleCloseModal: function(event) {
       this.fire('close-modal', event.detail);
@@ -110,25 +105,41 @@
     ready: function() {
     },
 
-    _initialize: function(elementName, schemaUrl, wide) {
-      Polymer.dom(this.$.eltPlaceholder).removeAttribute('hidden');
+    _initialize: function() {
       this._setPlaceholder();
 
-      if (!this._isString(elementName)) {
+      if (!this._isString(this.elementName)) {
         this._setError('Component name is not a string.');
         return;
       }
 
-      if (!elementName.length) {
+      if (!this.elementName.length) {
         this._setInformation('Component name is empty.');
         return;
       }
 
-      if (schemaUrl) {
+      if (this.schemaUrl) {
         this.$.schemaActivity.generateRequest();
 
       } else {
-        this._internalInitialize(elementName, wide);
+        var schemaObj = this.schema;
+        if (this._isString(this.schema)) {
+          try {
+            schemaObj = JSON.parse(this.schema);
+          } catch (e) { }
+        }
+
+        if (!this._isObject(schemaObj)) {
+          this._setError('Schema must be an object that has properties property as object, or the JSON string of the former.');
+          return;
+        }
+
+        if (!schemaObj.hasOwnProperty('properties')) {
+          this._setError('Schema must be an object that has properties property as object, or the JSON string of the former.');
+          return;
+        }
+
+        this._internalInitialize();
       }
     },
 
@@ -141,7 +152,7 @@
 
       try {
         var newSchema = JSON.parse(newSchemaStr);
-      } catch(e) {
+      } catch (e) {
         // try yaml
         try {
           newSchema = window.jsyaml.load(newSchemaStr);
@@ -161,12 +172,12 @@
       this.schema = newSchema;
       this._schemaChanged = schemaChangedFn;
 
-      this._internalInitialize(this.elementName, this.wide);
+      this._internalInitialize();
     },
 
-    _internalInitialize: function(elementName, wide) {
+    _internalInitialize: function() {
       // compute importHref
-      var importUrl = elementName;
+      var importUrl = this.elementName;
       var fsIndex = importUrl.indexOf("/");
       if (fsIndex > 0) {
         importUrl = importUrl.substring(fsIndex + 1);
@@ -189,7 +200,7 @@
 
       if (window.ComponentsBase != undefined) compUrl = window.ComponentsBase;
 
-      importUrl = fsIndex >= 0 ? compUrl + elementName + ".html" : importUrl + ".html";
+      importUrl = fsIndex >= 0 ? compUrl + this.elementName + ".html" : importUrl + ".html";
 
       var renderUI = this._renderUI.bind(this);
       var setError = this._setError.bind(this);
@@ -198,7 +209,7 @@
         var href = event.target.href;
         var elementName = href.substring(href.lastIndexOf("/") + 1);
         elementName = elementName.replace(".html", "");
-        renderUI(elementName, wide);
+        renderUI(elementName);
 
       }, function(event) {
         setError("An error occured while importing " + importUrl);
@@ -206,7 +217,7 @@
       }, true);
     },
 
-    _renderUI: function(elementName, wide) {
+    _renderUI: function(elementName) {
       var elt = this._getRenderedElement();
       if (elt) {
         Polymer.dom(Polymer.dom(elt).parentNode).removeChild(elt);
@@ -229,10 +240,6 @@
         elt.schema = this.schema;
       }
 
-      if (wide && this.$.mediaQuery.queryMatches && elt.properties.hasOwnProperty('_layout')) {
-        elt._layout = "horizontal";
-      }
-
       // NOTE: There is no need to set value here because value is set in open function
       // elt.value = this.value;
 
@@ -240,7 +247,7 @@
 
       Polymer.dom(this.$.modalContent).insertBefore(elt, this.$.buttonContainer);
 
-      Polymer.dom(this.$.eltPlaceholder).setAttribute('hidden', '');
+      Polymer.dom(this.$.messages).setAttribute('hidden', '');
       Polymer.dom(this.$.buttonContainer).removeAttribute('hidden');
 
       var isValid = elt.validate();
@@ -266,40 +273,11 @@
       this.fire('value-changed', { value: this.value }, { bubbles: false });
     },
 
-    _schemaChanged: function(newValue, oldValue) {
-      // if schemaUrl is set ignore locally set schema
-      if (this.schemaUrl) return;
-
-      var schemaObj = newValue;
-      if (this._isString(newValue)) {
-        try {
-          schemaObj = JSON.parse(newValue);
-        } catch (e) { }
-      }
-
-      if (!this._isObject(schemaObj)) {
-        this._setError('Schema must be an object that has properties property as object, or the JSON string of the former.');
-        return;
-      }
-
-      if (!schemaObj.hasOwnProperty('properties')) {
-        this._setError('Schema must be an object that has properties property as object, or the JSON string of the former.');
-        return;
-      }
-
-      Polymer.dom(this.$.eltPlaceholder).setAttribute('hidden', '');
-
-      var elt = this._getRenderedElement();
-      if (!elt) return;
-
-      elt.schema = schemaObj;
-    },
-
     _valueChanged: function(newValue, oldValue) {
       var elt = this._getRenderedElement();
       if (!elt) return;
 
-      Polymer.dom(this.$.eltPlaceholder).setAttribute('hidden', '');
+      Polymer.dom(this.$.messages).setAttribute('hidden', '');
 
       if (newValue === null || newValue === undefined) {
         elt.value = newValue;
@@ -337,19 +315,21 @@
     // public api
     // 
     open: function() {
-      var elt = this._getRenderedElement();
-      if (!elt) return;
+      // var elt = this._getRenderedElement();
+      // if (!elt) return;
 
-      var expValueType = this._getExpectedValueType(elt);
-      if (this._referenceTypeStrings.indexOf(expValueType) > -1) {
-        elt.value = JSON.parse(JSON.stringify(this.value));
+      // var expValueType = this._getExpectedValueType(elt);
+      // if (this._referenceTypeStrings.indexOf(expValueType) > -1) {
+      //   elt.value = JSON.parse(JSON.stringify(this.value));
 
-      } else {
-        elt.value = this.value;
-      }
+      // } else {
+      //   elt.value = this.value;
+      // }
 
-      // clear initial validation errors because validation errors should be displayed only as result of user interaction
-      elt.validate(false);
+      this._initialize();
+
+      // TODO move to initialize clear initial validation errors because validation errors should be displayed only as result of user interaction
+      // elt.validate(false);
 
       this.$.coreModal.open();
     },
@@ -360,29 +340,48 @@
 
     // 
     // helper functions 
-    // 
+    //
+    _uiElts: {
+      placeholderElt: null,
+      renderedElt: null
+    },
+
     _setPlaceholder: function() {
-      Polymer.dom(this.$.eltPlaceholder).innerHTML = this._placeholderText;
-      Polymer.dom(this.$.eltPlaceholder).classList.remove('error');
-      Polymer.dom(this.$.eltPlaceholder).classList.remove('information');
-      Polymer.dom(this.$.eltPlaceholder).textContent = '';
-      Polymer.dom(this.$.eltPlaceholder).removeAttribute('hidden');
+      var placeholderElt = this._uiElts.placeholderElt;
+      if (!placeholderElt) {
+        var placeholderElt = this.create('div');
+        Polymer.dom(placeholderElt).innerHTML = this._placeholderText;
+        this._uiElts.placeholderElt = placeholderElt;
+      }
+
+      Polymer.dom(this.$.modalContent).insertBefore(placeholderElt.childNodes[0], this.$.buttonContainer);
+      Polymer.dom(this.$.modalContent).insertBefore(placeholderElt.childNodes[0], this.$.buttonContainer);
+    },
+
+    _clearPlaceholder: function() {
+      var refNode = this.$.buttonContainer;
+      var prevSib = Polymer.dom(refNode).previousSibling;
+      while (prevSib !== null) {
+        var tmp = prevSib;
+        prevSib = Polymer.dom(prevSib).previousSibling;
+        Polymer.dom(this.$.modalContent).removeChild(tmp);
+      }
     },
 
     _setError: function(text) {
-      Polymer.dom(this.$.eltPlaceholder).innerHTML = '';
-      Polymer.dom(this.$.eltPlaceholder).classList.remove('info');
-      Polymer.dom(this.$.eltPlaceholder).classList.add('error');
-      Polymer.dom(this.$.eltPlaceholder).textContent = text;
-      Polymer.dom(this.$.eltPlaceholder).removeAttribute('hidden');
+      Polymer.dom(this.$.messages).innerHTML = '';
+      Polymer.dom(this.$.messages).classList.remove('info');
+      Polymer.dom(this.$.messages).classList.add('error');
+      Polymer.dom(this.$.messages).textContent = text;
+      Polymer.dom(this.$.messages).removeAttribute('hidden');
     },
 
     _setInformation: function(text) {
-      Polymer.dom(this.$.eltPlaceholder).innerHTML = '';
-      Polymer.dom(this.$.eltPlaceholder).classList.remove('error');
-      Polymer.dom(this.$.eltPlaceholder).classList.add('info');
-      Polymer.dom(this.$.eltPlaceholder).textContent = text;
-      Polymer.dom(this.$.eltPlaceholder).removeAttribute('hidden');
+      Polymer.dom(this.$.messages).innerHTML = '';
+      Polymer.dom(this.$.messages).classList.remove('error');
+      Polymer.dom(this.$.messages).classList.add('info');
+      Polymer.dom(this.$.messages).textContent = text;
+      Polymer.dom(this.$.messages).removeAttribute('hidden');
     },
 
     _getRenderedElement: function() {
