@@ -106,15 +106,42 @@
     },
 
     _initialize: function() {
-      this._setPlaceholder();
-
       if (!this._isString(this.elementName)) {
         this._setError('Component name is not a string.');
+        this.$.coreModal.close();
+        return;
+      }
+      
+      if (!this.elementName.length) {
+        this._setInformation('Component name is empty.');
+        this.$.coreModal.close();
         return;
       }
 
-      if (!this.elementName.length) {
-        this._setInformation('Component name is empty.');
+      var elt = Polymer.dom(this.$.modalContent).firstElementChild;
+      if (elt.id === "buttonContainer") {
+        // this is the first time _initialize is called; set placeholder
+        this._setPlaceholder();
+      
+      } else {
+        var importUrl = this._computeImportUrl(this.elementName);
+        var elementName = this._computeElementName(importUrl);
+        
+        if (elt.is !== elementName) {
+          // elementName changed; remove old element 
+          Polymer.dom(this.$.modalContent).removeChild(elt);
+         
+          // import new element and re-render
+          this._setPlaceholder();
+          this._internalInitialize();
+          return;
+        }
+        
+        // we already have the element rendered; just set value and validate
+        elt.value = JSON.parse(JSON.stringify(this.value));
+        var isValid = elt.validate(false);
+        this.toggleAttribute('disabled', !isValid, this.$.okButton);
+
         return;
       }
 
@@ -167,60 +194,31 @@
         return;
       }
 
-      var schemaChangedFn = this._schemaChanged;
-      this._schemaChanged = function() { };
       this.schema = newSchema;
-      this._schemaChanged = schemaChangedFn;
 
       this._internalInitialize();
     },
 
     _internalInitialize: function() {
-      // compute importHref
-      var importUrl = this.elementName;
-      var fsIndex = importUrl.indexOf("/");
-      if (fsIndex > 0) {
-        importUrl = importUrl.substring(fsIndex + 1);
-      }
-
-      // expand relative name with name prefix
-      if (importUrl.indexOf(".card") > 0) {
-        var resolve = { namePrefix: "" };
-        this.fire("resolve-name-prefix", resolve);
-        var prefix = resolve.namePrefix;
-
-        if (importUrl == "default.view") importUrl = "";
-        importUrl = importUrl.replace("default.", "");
-        importUrl = prefix + "/" + prefix + (importUrl ? ("-" + importUrl.replace(".", "-")) : "");
-      }
-
-      // load item-component from other component (itemComponent = component-name/item-component) or from localfolder (item-component)
-      var compUrl = this.resolveUrl("../");
-      if (document.URL.indexOf("/elements/designer-element/") >= 0) compUrl = "/components/"; // standalone designer preview?
-
-      if (window.ComponentsBase != undefined) compUrl = window.ComponentsBase;
-
-      importUrl = fsIndex >= 0 ? compUrl + this.elementName + ".html" : importUrl + ".html";
-
-      var renderUI = this._renderUI.bind(this);
-      var setError = this._setError.bind(this);
+      var importUrl = this._computeImportUrl(this.elementName);
+      var self = this;
 
       this.importHref(importUrl, function(event) {
-        var href = event.target.href;
-        var elementName = href.substring(href.lastIndexOf("/") + 1);
-        elementName = elementName.replace(".html", "");
-        renderUI(elementName);
+        var elementName = self._computeElementName(event.target.href);
+        self._renderUI(elementName);
 
       }, function(event) {
-        setError("An error occured while importing " + importUrl);
+        self._setError("An error occured while importing " + importUrl);
 
       }, true);
     },
 
     _renderUI: function(elementName) {
-      var elt = this._getRenderedElement();
-      if (elt) {
-        Polymer.dom(Polymer.dom(elt).parentNode).removeChild(elt);
+      // on first render we will have placeholder in the UI
+      // on subsequent renders we will have actual rendered element here
+      var elt = Polymer.dom(this.$.modalContent).firstElementChild;
+      if (elt.nodeName === "DIV") {
+        this._clearPlaceholder();
       }
 
       elt = this.create(elementName);
@@ -241,17 +239,18 @@
       }
 
       // NOTE: There is no need to set value here because value is set in open function
-      // elt.value = this.value;
+      elt.value = this.value;
 
       elt.addEventListener('value-changed', this._handleElementValueChanged.bind(this));
 
       Polymer.dom(this.$.modalContent).insertBefore(elt, this.$.buttonContainer);
 
       Polymer.dom(this.$.messages).setAttribute('hidden', '');
+
       Polymer.dom(this.$.buttonContainer).removeAttribute('hidden');
 
-      var isValid = elt.validate();
-      this.toggleAttribute('disabled', isValid, this.$.okButton);
+      var isValid = elt.validate(false);
+      this.toggleAttribute('disabled', !isValid, this.$.okButton);
     },
 
     _handleElementValueChanged: function(event) {
@@ -315,21 +314,7 @@
     // public api
     // 
     open: function() {
-      // var elt = this._getRenderedElement();
-      // if (!elt) return;
-
-      // var expValueType = this._getExpectedValueType(elt);
-      // if (this._referenceTypeStrings.indexOf(expValueType) > -1) {
-      //   elt.value = JSON.parse(JSON.stringify(this.value));
-
-      // } else {
-      //   elt.value = this.value;
-      // }
-
       this._initialize();
-
-      // TODO move to initialize clear initial validation errors because validation errors should be displayed only as result of user interaction
-      // elt.validate(false);
 
       this.$.coreModal.open();
     },
@@ -364,8 +349,50 @@
       while (prevSib !== null) {
         var tmp = prevSib;
         prevSib = Polymer.dom(prevSib).previousSibling;
-        Polymer.dom(this.$.modalContent).removeChild(tmp);
+        
+        if (this._uiElts.placeholderElt.childNodes.length === 0) {
+          this._uiElts.placeholderElt.appendChild(tmp);
+
+        } else {
+          var tmpRefNode = this._uiElts.placeholderElt.childNodes[0];
+          this._uiElts.placeholderElt.insertBefore(tmp, tmpRefNode);
+        }
       }
+    },
+
+    _computeImportUrl: function(elementName) {
+      // compute importHref
+      var importUrl = elementName;
+      var fsIndex = importUrl.indexOf("/");
+      if (fsIndex > 0) {
+        importUrl = importUrl.substring(fsIndex + 1);
+      }
+
+      // expand relative name with name prefix
+      if (importUrl.indexOf(".card") > 0) {
+        var resolve = { namePrefix: "" };
+        this.fire("resolve-name-prefix", resolve);
+        var prefix = resolve.namePrefix;
+
+        if (importUrl == "default.view") importUrl = "";
+        importUrl = importUrl.replace("default.", "");
+        importUrl = prefix + "/" + prefix + (importUrl ? ("-" + importUrl.replace(".", "-")) : "");
+      }
+
+      // load item-component from other component (itemComponent = component-name/item-component) or from localfolder (item-component)
+      var compUrl = this.resolveUrl("../");
+      if (document.URL.indexOf("/elements/designer-element/") >= 0) compUrl = "/components/"; // standalone designer preview?
+
+      if (window.ComponentsBase != undefined) compUrl = window.ComponentsBase;
+
+      importUrl = fsIndex >= 0 ? compUrl + elementName + ".html" : importUrl + ".html";
+      return importUrl;
+    },
+
+    _computeElementName: function(importUrl) {
+      var elementName = importUrl.substring(importUrl.lastIndexOf("/") + 1);
+      elementName = elementName.replace(".html", "");
+      return elementName;
     },
 
     _setError: function(text) {
@@ -382,12 +409,6 @@
       Polymer.dom(this.$.messages).classList.add('info');
       Polymer.dom(this.$.messages).textContent = text;
       Polymer.dom(this.$.messages).removeAttribute('hidden');
-    },
-
-    _getRenderedElement: function() {
-      var elt = Polymer.dom(this.$.modalContent).firstElementChild;
-      if (elt.id === "buttonContainer") return null;
-      return elt;
     },
 
     _getExpectedValueType: function(elt) {
