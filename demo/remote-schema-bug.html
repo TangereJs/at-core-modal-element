@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>at-core-modal-element demo page</title>
+  <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+  <link rel="import" href="../../at-core-style-classes/at-core-style-classes.html">
+  <link rel="import" href="../at-core-modal-element.html">
+  <style is="custom-style" include="at-core-style-classes">
+    h4 {
+      margin: 0;
+    }
+
+    .demo-row {
+      box-sizing: border-box;
+      max-width: 1024px;
+      margin: 16px auto 0 auto;
+
+      padding: 4px;
+      border: 1px solid gray;
+    }
+
+    .elt-container {
+      padding: 32px;
+      border: 1px solid purple;
+    }
+
+    .value-echo {
+      box-sizing: border-box;
+      max-width: 1024px;
+      margin: 16px auto 0 auto;
+      padding: 0 32px;
+    }
+
+    .btn {
+      background-color: peru;
+      padding: 8px;
+      margin: 4px;
+      border: 1px solid transparent;
+    }
+
+    .btn:hover {
+      border: 1px solid palegreen;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="demo-row">
+    <h4 class="font-headline">This demo uses sets two different schemas from remote datasource</h4>
+    <div class="elt-container">
+      <at-core-modal-element id="demo1" class="layout-flex" element-name="at-form-complex/at-form-complex"></at-core-modal-element>
+      <div class="layout-horizontal">
+        <button id="openBtn1" type="button" class="btn block">Open modal with remote-schema.json</button>
+        <button id="openBtn2" type="button" class="btn block">Open modal with test.form</button>
+      </div>
+    </div>
+  </div>
+
+  <script> 
+    document.addEventListener('WebComponentsReady', function() {
+      var demo = document.getElementById('demo1');
+      var openBtn1 = document.getElementById('openBtn1');
+      var openBtn2 = document.getElementById('openBtn2');
+
+      openBtn1.addEventListener('click', function(event) {
+        demo.schemaUrl = "remote-schema.json";
+        demo.open();
+      });
+
+      openBtn2.addEventListener('click', function(event) {
+        demo.schemaUrl = "test.form";
+        demo.open();
+      });
+
+    }); 
+  </script>
+</body>
+
+</html>

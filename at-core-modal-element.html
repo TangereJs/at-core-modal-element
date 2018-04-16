@@ -211,6 +211,13 @@
       }
 
       if (this._fetchSchemaFromUrl(elt)) {
+        // remove previously rendered element from DOM tree
+        if (this._uiElts.renderedElt) {
+          Polymer.dom(this.$.modalContent).removeChild(this._uiElts.renderedElt);
+          // clear it from memory
+          this._uiElts.renderedElt = null;
+        }
+
         // keep reference of created element for latter use
         this._uiElts.renderedElt = elt;
         return;
@@ -269,9 +276,7 @@
       // this will trigger _schemaChanged but since schemaUrl is set _schemaChanged will return immediatelly
       this.schema = newSchema;
 
-      var elt = this._uiElts.renderedElt;
-      this._uiElts.renderedElt = null;
-      this._renderUI(elt);
+      this._renderUI(this._uiElts.renderedElt);
     },
 
     _renderUI: function(elt) {
