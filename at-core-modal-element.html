@@ -420,9 +420,14 @@
     _placeholderText: '<div class="placeholder-text"></div><div class="placeholder-text mtsm"></div>',
     _referenceTypeStrings: ["[object Object]", "[object Array]"],
 
-    _uiElts: {
-      placeholderElt: null,
-      renderedElt: null
+    get _uiElts() {
+      if (!this._ui__elts_) {
+        this._ui__elts_= {
+          placeholderElt: null,
+          renderedElt: null
+        };
+      }
+      return this._ui__elts_;
     },
 
     _setPlaceholder: function() {
