@@ -55,6 +55,7 @@
       <div class="layout-horizontal">
         <button id="openBtn1" type="button" class="btn block">Open modal with remote-schema.json</button>
         <button id="openBtn2" type="button" class="btn block">Open modal with test.form</button>
+        <button id="openBtn3" type="button" class="btn block">Open modal with actionSchema.form</button>
       </div>
     </div>
   </div>
@@ -64,6 +65,7 @@
       var demo = document.getElementById('demo1');
       var openBtn1 = document.getElementById('openBtn1');
       var openBtn2 = document.getElementById('openBtn2');
+      var openBtn3 = document.getElementById('openBtn3');
 
       openBtn1.addEventListener('click', function(event) {
         demo.schemaUrl = "remote-schema.json";
@@ -72,6 +74,11 @@
 
       openBtn2.addEventListener('click', function(event) {
         demo.schemaUrl = "test.form";
+        demo.open();
+      });
+
+      openBtn3.addEventListener('click', function(event) {
+        demo.schemaUrl = "actionSchema.form";
         demo.open();
       });
 
