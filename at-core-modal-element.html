@@ -35,7 +35,7 @@
       <div id="modalContent" class$="[[elementClass]]">
         <div id="buttonContainer" class="layout-horizontal layout-center-justified" hidden>
           <at-carbon-button raised class="cancel-btn" label="Cancel" on-tap="_handleCancelButtonTap"></at-carbon-button>
-          <at-carbon-button id="okButton" disabled raised class="ok-btn" label="OK" on-tap="_handleOkButtonTap"></at-carbon-button>
+          <at-carbon-button id="okButton" raised class="ok-btn" label="OK" on-tap="_handleOkButtonTap"></at-carbon-button>
         </div>
       </div>
     </at-core-modal>
@@ -165,9 +165,7 @@
       this._setEltValue(elt);
 
       // clear validation errors from UI, because validation errors should be displayed only as result of user interaction
-      var isValid = elt.validate(false);
-      // if element is invalid disable ok button
-      this.toggleAttribute('disabled', !isValid, this.$.okButton);
+      elt.validate(false);
 
       return true;
     },
@@ -289,20 +287,12 @@
       // we need to assign elt.value here for when elt is imported and rendered for the first time and value is set before .open() is called
       this._setEltValue(elt);
 
-      elt.addEventListener('value-changed', this._handleElementValueChanged.bind(this));
-
       this._clearPlaceholder();
       Polymer.dom(this.$.modalContent).insertBefore(elt, this.$.buttonContainer);
 
       Polymer.dom(this.$.buttonContainer).removeAttribute('hidden');
-
-      var isValid = elt.validate(false);
-      this.toggleAttribute('disabled', !isValid, this.$.okButton);
-    },
-
-    _handleElementValueChanged: function(event) {
-      var isValid = event.target.validate(true);
-      this.toggleAttribute('disabled', !isValid, this.$.okButton);
+      // clear validation errors from UI, because validation errors should be displayed only as result of user interaction
+      elt.validate(false);
     },
 
     _handleCancelButtonTap: function(event) {
@@ -310,11 +300,16 @@
     },
 
     _handleOkButtonTap: function(event) {
-      this.close("ok");
-
       var elt = this._getRenderedElement();
       if (!elt) return;
 
+      var isValid = elt.validate();
+      if (!isValid) {
+        event.stopPropagation();
+        return;
+      }
+
+      this.close("ok");
       this.value = JSON.parse(JSON.stringify(elt.value));
       this.fire('value-changed', { value: this.value }, { bubbles: false });
     },
@@ -364,7 +359,7 @@
 
       var elt = this._getRenderedElement();
       if (!elt) return;
-      
+
       this._setError("");
 
       if (newValue === null || newValue === undefined) {
