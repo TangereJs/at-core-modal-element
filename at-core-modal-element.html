@@ -89,7 +89,8 @@
     },
 
     observers: [
-      '_clearError(elementName, schemaUrl, schema.*, value.*)'
+      // we do not clear error on schema changed and value changed because errors are cleared in observer functions when appropriate
+      '_clearError(elementName, schemaUrl)'
     ],
 
     _clearError: function(elementName, schemaUrl) {
@@ -293,7 +294,6 @@
       this._clearPlaceholder();
       Polymer.dom(this.$.modalContent).insertBefore(elt, this.$.buttonContainer);
 
-      Polymer.dom(this.$.messages).setAttribute('hidden', '');
       Polymer.dom(this.$.buttonContainer).removeAttribute('hidden');
 
       var isValid = elt.validate(false);
@@ -323,8 +323,7 @@
       // if schemaUrl is set ignore locally set schema
       if (this.schemaUrl) return;
 
-      var elt = this._getRenderedElement();
-      if (!elt) return;
+      // NOTE we can validate schema object before .open is first called because presence of rendered element is not necessary
 
       var schemaObj = newValue;
       if (this._isString(newValue)) {
@@ -333,50 +332,72 @@
         } catch (e) { }
       }
 
+      var errorText = '';
       if (!this._isObject(schemaObj)) {
-        this._setError('Schema must be an object that has properties property as object, or the JSON string of the former.');
-        return;
+        errorText = 'Schema property must be an object, or the JSON string of the former.';
+
+      } else if (!schemaObj.hasOwnProperty('properties')) {
+        var errorText = 'Schema must be an object that has properties property as object, or the JSON string of the former.';
       }
 
-      if (!schemaObj.hasOwnProperty('properties')) {
-        this._setError('Schema must be an object that has properties property as object, or the JSON string of the former.');
+      if (errorText.length) {
+        if (this.$.coreModal.isOpen) {
+          alert(errorText);
+
+        } else {
+          this._setError(errorText);
+        }
+
         return;
       }
 
       this._setError("");
 
-      Polymer.dom(this.$.messages).setAttribute('hidden', '');
-
+      var elt = this._getRenderedElement();
+      if (!elt) return;
       elt.schema = schemaObj;
     },
 
     _valueChanged: function(newValue, oldValue) {
+      // NOTE we can not validate value before .open is first called because presence of rendered element is necessary
+      // we need to know the type of renderedElement.value property to do the validation correctly
+
       var elt = this._getRenderedElement();
       if (!elt) return;
-
-      Polymer.dom(this.$.messages).setAttribute('hidden', '');
+      
+      this._setError("");
 
       if (newValue === null || newValue === undefined) {
         elt.value = newValue;
         return;
       }
 
-      var expValueType = this._getExpectedValueType(elt);
+      var errorText = "";
 
+      var expValueType = this._getExpectedValueType(elt);
       var actValue = newValue;
       if (this._referenceTypeStrings.indexOf(expValueType) > -1 && this._isString(newValue)) {
         // parse JSON strings of arrays or objects
         try {
           actValue = JSON.parse(newValue);
         } catch (e) {
-          this._setError('Invalid value json string: ' + e);
-          return;
+          errorText = 'Invalid value json string: ' + e;
         }
       }
 
       var actValueType = this._getTypeString(actValue);
       if (actValueType !== expValueType) {
-        this._setError('Value type mismatch. Type of ' + expValueType + ' was expected but ' + actValueType + ' was given instead.');
+        errorText = 'Value type mismatch. Type of ' + expValueType + ' was expected but ' + actValueType + ' was given instead.';
+      }
+
+      if (errorText.length) {
+        if (this.$.coreModal.isOpen) {
+          alert(errorText)
+
+        } else {
+          this._setError(errorText);
+        }
+
         return;
       }
 
