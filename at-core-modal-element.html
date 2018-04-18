@@ -406,12 +406,35 @@
     },
 
     _handleQueryMatches: function(event) {
-      return;
-      var value = event.detail.value;
       var elt = this._getRenderedElement();
       if (!elt) return;
-      if (!elt.properties.hasOwnProperty('_layout')) return;
-      elt._layout = this.wide && value ? "horizontal" : "vertical";
+
+      var value = event.detail.value;
+      if (!elt.properties.hasOwnProperty('schema')) return;
+
+      var schema = elt.schema;
+      var propNames = Object.keys(schema.properties);
+      // debugger;
+      propNames.forEach(function(propName) {
+        var propDef = schema.properties[propName];
+        
+        if (!propDef.hasOwnProperty('_isUserSetxGridCols')) {
+          propDef._isUserSetxGridCols = propDef.hasOwnProperty('xgridcols');
+        }
+        if (propDef._isUserSetxGridCols) return;
+
+        if (this.wide && value) {
+          propDef.xgridcols = "6";
+        
+        } else {
+          propDef.xgridcols = "12";
+        }
+      }, this);
+
+      elt.schema = { properties: {} };
+      elt.schema = schema;
+
+      // elt._layout = this.wide && value ? "horizontal" : "vertical";
     },
 
     // 
@@ -421,7 +444,7 @@
 
     get _uiElts() {
       if (!this._ui__elts_) {
-        this._ui__elts_= {
+        this._ui__elts_ = {
           placeholderElt: null,
           renderedElt: null
         };
