@@ -371,7 +371,7 @@
 
       var expValueType = this._getExpectedValueType(elt);
       var actValue = newValue;
-      if (this._referenceTypeStrings.indexOf(expValueType) > -1 && this._isString(newValue)) {
+      if (typeof expValueType == "object" && this._isString(newValue)) {
         // parse JSON strings of arrays or objects
         try {
           actValue = JSON.parse(newValue);
@@ -418,7 +418,6 @@
     // helper functions and properties
     //
     _placeholderText: '<div class="placeholder-text"></div><div class="placeholder-text mtsm"></div>',
-    _referenceTypeStrings: ["[object Object]", "[object Array]"],
 
     get _uiElts() {
       if (!this._ui__elts_) {
@@ -523,7 +522,7 @@
 
     _setEltValue: function(elt) {
       var expValueType = this._getExpectedValueType(elt);
-      if (this._referenceTypeStrings.indexOf(expValueType) > -1) {
+      if (typeof expValueType == "object") {
         elt.value = JSON.parse(JSON.stringify(this.value));
 
       } else {
