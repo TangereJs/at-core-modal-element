@@ -350,6 +350,9 @@
 
       var elt = this._getRenderedElement();
       if (!elt) return;
+
+      schemaObj = this._upgradeSchema(schemaObj, this.wide, this.$.mediaQuery.queryMatches);
+
       elt.schema = schemaObj;
     },
 
@@ -413,24 +416,7 @@
       var value = event.detail.value;
       if (!elt.properties.hasOwnProperty('schema')) return;
 
-      var schema = elt.schema;
-      var propNames = Object.keys(schema.properties);
-      
-      propNames.forEach(function(propName) {
-        var propDef = schema.properties[propName];
-        
-        if (!propDef.hasOwnProperty('_isUserSetxGridCols')) {
-          propDef._isUserSetxGridCols = propDef.hasOwnProperty('xgridcols');
-        }
-        if (propDef._isUserSetxGridCols) return;
-
-        if (this.wide && value) {
-          propDef.xgridcols = "6";
-        
-        } else {
-          propDef.xgridcols = "12";
-        }
-      }, this);
+      var schema = this._upgradeSchema(elt.schema, this.wide, this.$.mediaQuery.queryMatches);
 
       elt.schema = { properties: {} };
       elt.schema = schema;
@@ -558,6 +544,29 @@
         value = value();
       }
       return value;
+    },
+
+    /* upgrades schema with xgridcols if necessary */
+    _upgradeSchema: function(schema, wide, queryMatches) {
+      var propNames = Object.keys(schema.properties);
+      
+      propNames.forEach(function(propName) {
+        var propDef = schema.properties[propName];
+        
+        if (!propDef.hasOwnProperty('_isUserSetxGridCols')) {
+          propDef._isUserSetxGridCols = propDef.hasOwnProperty('xgridcols');
+        }
+        if (propDef._isUserSetxGridCols) return;
+
+        if (wide && queryMatches) {
+          propDef.xgridcols = "6";
+        
+        } else {
+          propDef.xgridcols = "12";
+        }
+      }, this);
+
+      return schema;
     },
 
     _isString: function(obj) { return Object.prototype.toString.call(obj) === "[object String]"; },
