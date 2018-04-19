@@ -369,11 +369,11 @@
 
       var errorText = "";
 
-      var expValueType = this._getExpectedValueType(elt);
+      var expValue = this._getInitialValue(elt);
       var actValue = newValue;
-      if (typeof expValueType == "object" && this._isString(newValue)) {
-        // parse JSON strings of arrays or objects
+      if (typeof expValue == "object" && this._isString(newValue)) {
         try {
+          // parse JSON strings of arrays or objects
           actValue = JSON.parse(newValue);
         } catch (e) {
           errorText = 'Invalid value json string: ' + e;
@@ -381,6 +381,7 @@
       }
 
       var actValueType = this._getTypeString(actValue);
+      var expValueTYpe = this._getTypeString(expValue);
       if (actValueType !== expValueType) {
         errorText = 'Value type mismatch. Type of ' + expValueType + ' was expected but ' + actValueType + ' was given instead.';
       }
@@ -414,7 +415,7 @@
 
       var schema = elt.schema;
       var propNames = Object.keys(schema.properties);
-      // debugger;
+      
       propNames.forEach(function(propName) {
         var propDef = schema.properties[propName];
         
@@ -433,8 +434,6 @@
 
       elt.schema = { properties: {} };
       elt.schema = schema;
-
-      // elt._layout = this.wide && value ? "horizontal" : "vertical";
     },
 
     // 
@@ -544,8 +543,8 @@
     },
 
     _setEltValue: function(elt) {
-      var expValueType = this._getExpectedValueType(elt);
-      if (typeof expValueType == "object") {
+      var expValue = this._getInitialValue(elt);
+      if (typeof expValue == "object") {
         elt.value = JSON.parse(JSON.stringify(this.value));
 
       } else {
@@ -553,12 +552,12 @@
       }
     },
 
-    _getExpectedValueType: function(elt) {
+    _getInitialValue: function(elt) {
       var value = elt.properties.value.value;
       if (this._isFunction(value)) {
         value = value();
       }
-      return this._getTypeString(value);
+      return value;
     },
 
     _isString: function(obj) { return Object.prototype.toString.call(obj) === "[object String]"; },
