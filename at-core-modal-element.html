@@ -282,7 +282,9 @@
       // we need to assign elt.schema here for when elt is imported and rendered for the first time and schema is set before .open() is called
       if (this._isObject(elt.properties) && elt.properties.hasOwnProperty('schema')) {
         elt.autoValidate = true;
-        elt.schema = this.schema;
+        var schema = this._upgradeSchema(this.schema, this.wide, this.$.mediaQuery.queryMatches);
+        elt.schema = { properties: {} };
+        elt.schema = schema;
       }
       // we need to assign elt.value here for when elt is imported and rendered for the first time and value is set before .open() is called
       this._setEltValue(elt);
