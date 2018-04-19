@@ -350,10 +350,14 @@
 
       this._setError("");
 
+      schemaObj = this._upgradeSchema(schemaObj, this.wide, this.$.mediaQuery.queryMatches);
+      var schemaChangedFn = this._schemaChanged;
+      this._schemaChanged = function() {};
+      this.schema = schemaObj;
+      this._schemaChanged = schemaChangedFn;
+
       var elt = this._getRenderedElement();
       if (!elt) return;
-
-      schemaObj = this._upgradeSchema(schemaObj, this.wide, this.$.mediaQuery.queryMatches);
 
       elt.schema = schemaObj;
     },
