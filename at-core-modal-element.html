@@ -421,7 +421,8 @@
       var schema = this._upgradeSchema(elt.schema, this.wide, this.$.mediaQuery.queryMatches);
 
       elt.schema = { properties: {} };
-      elt.schema = schema;
+      elt.schema = schema;      
+      elt.validate(false);
     },
 
     // 
