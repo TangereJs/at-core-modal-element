@@ -549,10 +549,10 @@
     /* upgrades schema with xgridcols if necessary */
     _upgradeSchema: function(schema, wide, queryMatches) {
       var propNames = Object.keys(schema.properties);
-      
+
       propNames.forEach(function(propName) {
         var propDef = schema.properties[propName];
-        
+
         if (!propDef.hasOwnProperty('_isUserSetxGridCols')) {
           propDef._isUserSetxGridCols = propDef.hasOwnProperty('xgridcols');
         }
@@ -560,7 +560,7 @@
 
         if (wide && queryMatches) {
           propDef.xgridcols = "6";
-        
+
         } else {
           propDef.xgridcols = "12";
         }
