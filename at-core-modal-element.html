@@ -85,6 +85,13 @@
           return {};
         },
         observer: '_valueChanged'
+      },
+
+      _modalElementOptions: {
+        type: Object,
+        value: function() {
+          return {};
+        }
       }
     },
 
@@ -100,9 +107,11 @@
     // 
     // public api
     // 
-    open: function() {
+    open: function(options) {
       // one can set invalid schema or value before open is called; in that case do not open modal so that error messages are visible
       if (this._hasError()) return;
+
+      this._modalElementOptions = options;
 
       // _initialize will return undefined if elementName or schemaUrl property is invalid
       if (!this._initialize()) return;
@@ -164,8 +173,19 @@
       // set value on elt
       this._setEltValue(elt);
 
+      // set options on elt
+      if (this._isObject(this._modalElementOptions)) {
+        Object.keys(this._modalElementOptions).forEach(function(opt) {
+          elt[opt] = this._modalElementOptions[opt];
+        }, this);
+      }
+
       // clear validation errors from UI, because validation errors should be displayed only as result of user interaction
       elt.validate(false);
+
+      if (this._isFunction(elt.focus)) {
+        elt.focus();
+      }
 
       return true;
     },
@@ -289,12 +309,23 @@
       // we need to assign elt.value here for when elt is imported and rendered for the first time and value is set before .open() is called
       this._setEltValue(elt);
 
+      // set element options
+      if (this._isObject(this._modalElementOptions)) {
+        Object.keys(this._modalElementOptions).forEach(function(opt) {
+          elt[opt] = this._modalElementOptions[opt];
+        }, this);
+      }
+
       this._clearPlaceholder();
       Polymer.dom(this.$.modalContent).insertBefore(elt, this.$.buttonContainer);
 
       Polymer.dom(this.$.buttonContainer).removeAttribute('hidden');
       // clear validation errors from UI, because validation errors should be displayed only as result of user interaction
       elt.validate(false);
+
+      if (this._isFunction(elt.focus)) {
+        elt.focus();
+      }
     },
 
     _handleCancelButtonTap: function(event) {
@@ -352,7 +383,7 @@
 
       schemaObj = this._upgradeSchema(schemaObj, this.wide, this.$.mediaQuery.queryMatches);
       var schemaChangedFn = this._schemaChanged;
-      this._schemaChanged = function() {};
+      this._schemaChanged = function() { };
       this.schema = schemaObj;
       this._schemaChanged = schemaChangedFn;
 
@@ -425,7 +456,7 @@
       var schema = this._upgradeSchema(elt.schema, this.wide, this.$.mediaQuery.queryMatches);
 
       elt.schema = { properties: {} };
-      elt.schema = schema;      
+      elt.schema = schema;
       elt.validate(false);
     },
 
@@ -539,10 +570,12 @@
       var expValue = this._getInitialValue(elt);
       if (typeof expValue == "object") {
         elt.value = JSON.parse(JSON.stringify(this.value));
-
-      } else {
-        elt.value = this.value;
+        return;
       }
+
+      if (typeof this.value == "object") this.value = "";
+
+      elt.value = this.value;
     },
 
     _getInitialValue: function(elt) {
