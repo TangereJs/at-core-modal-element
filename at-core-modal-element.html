@@ -320,7 +320,13 @@
       Polymer.dom(this.$.modalContent).insertBefore(elt, this.$.buttonContainer);
 
       Polymer.dom(this.$.buttonContainer).removeAttribute('hidden');
-      // clear validation errors from UI, because validation errors should be displayed only as result of user interaction
+      
+      // for elements that render in async manner clear UI errors when element renders
+      elt.addEventListener('rendered', function() {
+        elt.validate(false);
+      });
+
+      // for elements that render in sync manner clear validation errors from UI immediately
       elt.validate(false);
 
       if (this._isFunction(elt.focus)) {
