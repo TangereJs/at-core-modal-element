@@ -320,10 +320,17 @@
       Polymer.dom(this.$.modalContent).insertBefore(elt, this.$.buttonContainer);
 
       Polymer.dom(this.$.buttonContainer).removeAttribute('hidden');
-      
+
+      var self = this;
       // for elements that render in async manner clear UI errors when element renders
       elt.addEventListener('rendered', function() {
-        elt.validate(false);
+        // if value is empty, clear validation errors from UI
+        if (self._isValueEmptyOrInitial(elt.schema, elt.value, elt)) {
+          elt.validate(false);
+
+        } else {
+          elt.validate(true);
+        }
       });
 
       // for elements that render in sync manner clear validation errors from UI immediately
@@ -332,6 +339,32 @@
       if (this._isFunction(elt.focus)) {
         elt.focus();
       }
+    },
+
+    _isValueEmptyOrInitial: function(schema, value, elt) {
+      var result = true;
+
+      var valueKeys = Object.keys(value);
+      if (valueKeys.length == 0) return true;
+      var props = schema.properties;
+      valueKeys.forEach(function(valueKey) {
+        var valueForKey = value[valueKey];
+        var valueFromSchema = props[valueKey].default || props[valueKey].value;
+        if (valueFromSchema == undefined) {
+          var schemaElt = elt.getElement(valueKey);
+          // schemaElt can not be null, it has to exist on the form in the rendered handler
+          if (schemaElt == null) { console.log('Catastrophic error. _isValueEmptyOrInitial requires that element with id of ' + valueKey + ' be rendered in html'); return; }
+          // schemaElt may not have a value property at all
+          if (schemaElt.properties.hasOwnProperty('value') == false) { console.log('Catastrophic error. _isValueEmptyOrInitial function detected that element with id of ' + valueKey + ' does not have value property but it had an entry in value object.'); return; }
+          var initialValue = schemaElt.properties.value.value;
+          result = result && (valueForKey == initialValue);
+
+        } else {
+          result = result && (valueForKey == valueFromSchema);
+        }
+      });
+
+      return result;
     },
 
     _handleCancelButtonTap: function(event) {
