@@ -349,6 +349,7 @@
       var props = schema.properties;
       valueKeys.forEach(function(valueKey) {
         var valueForKey = value[valueKey];
+        if (!props.hasOwnProperty(valueKey)) return;
         var valueFromSchema = props[valueKey].default || props[valueKey].value;
         if (valueFromSchema == undefined) {
           var schemaElt = elt.getElement(valueKey);
