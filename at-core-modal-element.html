@@ -388,6 +388,8 @@
     },
 
     _schemaChanged: function(newValue, oldValue) {
+      this.$.coreModal.title = this.schema.$meta && this.schema.$meta.title ? this.schema.$meta.title : '';
+
       // if schemaUrl is set ignore locally set schema
       if (this.schemaUrl) return;
 
