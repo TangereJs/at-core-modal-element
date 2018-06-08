@@ -16,16 +16,20 @@
 
       .cancel-btn {
         --at-carbon-button: {
-          background-color: var(--at-light-blue);
+          background-color: var(--at-grey);
           color: var(--at-background-text-color);
         }
       }
 
       .ok-btn {
         --at-carbon-button: {
-          background-color: var(--at-green);
+          background-color: var(--at-blue);
           color: var(--at-background-text-color);
         }
+      }
+
+      #buttonContainer {
+        margin: 16px -16px -16px -16px;
       }
     </style>
     <at-core-media-query id="mediaQuery" query="(min-width: 800px)" on-query-matches-changed="_handleQueryMatches"></at-core-media-query>
@@ -33,7 +37,7 @@
 
     <at-core-modal id="coreModal" on-close-modal="_handleCloseModal" wide$="[[wide]]">
       <div id="modalContent" class$="[[elementClass]]">
-        <div id="buttonContainer" class="layout-horizontal layout-center-justified" hidden>
+        <div id="buttonContainer" class="layout-horizontal layout-end-justified p background-lightGrey" hidden>
           <at-carbon-button class="cancel-btn" label="Cancel" on-tap="_handleCancelButtonTap"></at-carbon-button>
           <at-carbon-button id="okButton" class="ok-btn" label="OK" on-tap="_handleOkButtonTap"></at-carbon-button>
         </div>
