@@ -14,20 +14,6 @@
         box-sizing: border-box;
       }
 
-      .cancel-btn {
-        --at-carbon-button: {
-          background-color: var(--at-grey);
-        }
-        color: var(--at-background-text-color) !important;
-      }
-
-      .ok-btn {
-        --at-carbon-button: {
-          background-color: var(--at-blue);
-        }
-        color: var(--at-background-text-color) !important;
-      }
-
       #buttonContainer {
         margin: 16px -16px -16px -16px;
       }
@@ -38,8 +24,8 @@
     <at-core-modal id="coreModal" on-close-modal="_handleCloseModal" wide$="[[wide]]">
       <div id="modalContent" class$="[[elementClass]]">
         <div id="buttonContainer" class="layout-horizontal layout-end-justified p background-lightGrey" hidden>
-          <at-carbon-button class="cancel-btn" label="Cancel" on-tap="_handleCancelButtonTap" button-type="contained" button-color="cancel"></at-carbon-button>
-          <at-carbon-button id="okButton" class="ok-btn" label="OK" on-tap="_handleOkButtonTap" button-type="contained" button-color="primary"></at-carbon-button>
+          <at-carbon-button label="Cancel" on-tap="_handleCancelButtonTap" button-type="contained" button-color="cancel"></at-carbon-button>
+          <at-carbon-button label="OK" on-tap="_handleOkButtonTap" button-type="contained" button-color="primary"></at-carbon-button>
         </div>
       </div>
     </at-core-modal>
