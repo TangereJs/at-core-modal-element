@@ -6,6 +6,36 @@
 
 <script src="lib/js-yaml.js"></script>
 
+<!-- custom styles that are added as part of #93 as an effort to make at-core-modal display correctly under shadowDOM when at-core-modal is attached to the document.body -->
+<custom-style>
+  <style>
+    .at-m {
+      margin: 16px;
+    }
+
+    .at-layout-horizontal {
+      @apply --layout-horizontal;
+    }
+
+    .at-layout-end-justified {
+      @apply --layout-end-justified;
+    }
+
+    .at-p {
+      padding: 16px;
+    }
+
+    .at-background-lightGrey {
+      background-color: var(--at-light-grey);
+      color: var(--at-background-text-color);
+    }
+
+    .at-cme-button-container {
+      margin: 16px -16px -16px -16px;
+    }
+  </style>
+</custom-style>
+
 <dom-module id="at-core-modal-element">
   <template>
     <style include="at-core-style-classes">
@@ -13,17 +43,14 @@
         display: block;
         box-sizing: border-box;
       }
-
-      #buttonContainer {
-        margin: 16px -16px -16px -16px;
-      }
     </style>
     <at-core-media-query id="mediaQuery" query="(min-width: 800px)" on-query-matches-changed="_handleQueryMatches"></at-core-media-query>
     <div id="messages" class="font-body1"></div>
 
     <at-core-modal id="coreModal" on-close-modal="_handleCloseModal" wide$="[[wide]]">
       <div id="modalContent" class$="[[elementClass]]">
-        <div id="buttonContainer" class="layout-horizontal layout-end-justified p background-lightGrey" hidden>
+        <div id="buttonContainer" class="at-cme-button-container at-layout-horizontal at-layout-end-justified at-p at-background-lightGrey"
+          hidden>
           <at-carbon-button label="Cancel" on-tap="_handleCancelButtonTap" button-type="contained" button-color="cancel"></at-carbon-button>
           <at-carbon-button label="OK" on-tap="_handleOkButtonTap" button-type="contained" button-color="primary"></at-carbon-button>
         </div>
@@ -46,7 +73,7 @@
 
       elementClass: {
         type: String,
-        value: 'm'
+        value: 'at-m'
       },
 
       schemaUrl: {
