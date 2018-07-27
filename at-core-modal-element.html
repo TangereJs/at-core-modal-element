@@ -661,6 +661,7 @@
       propNames.forEach(function(propName) {
         var propDef = schema.properties[propName];
 
+        // please read 'What is _isUserSetxGridCols and why its there?' bellow to understand why _isUserSetxgGridCols exists and what it does
         if (!propDef.hasOwnProperty('_isUserSetxGridCols')) {
           propDef._isUserSetxGridCols = propDef.hasOwnProperty('xgridcols');
         }
@@ -682,4 +683,70 @@
     _isObject: function(obj) { return Object.prototype.toString.call(obj) === "[object Object]"; },
     _getTypeString: function(obj) { return Object.prototype.toString.call(obj); }
   });
+
+/*
+
+What is _isUserSetxGridCols and why its there?
+
+_isUserSetxGridCols is used to distinguish between xgridcols set by user and xgridcols set by at-core-modal-element.
+_isUserSetxGridCols is important because xgridcols values set by user must always be respected. xgridcols values set by at-core-modal-element must be respected when wide is true.
+
+Let schema be 
+
+schema: {
+    properties: {
+        text1: {
+            type: string
+        },
+        text2: {
+            type: string,
+            xgridcols: 6
+        },
+        code1: {
+            type: string,
+            xtype: code,
+            xgridcols: 12
+        }
+    }
+}
+
+When wide is false, at-form-modal is expected to render the schema in single column. Due to rendering logic the following will happen
+text1 will use all available width, because it doesn't have xgridcols set and default is xgridcols: 12
+text2 will use half available width, because xgridcols is set to 6
+code1 will use all available width, because xgridcols is set to 12
+
+When wide is true and available width is at least 800px, at-form-modal is expected to render the schema in two columns.
+To enforce two column rendering, at-core-moda-element will change the schema as follows
+schema: {
+    properties: {
+        text1: {
+            type: string,
+            xgridcols: 6,
+            _isUserSetxGridCols: false
+        },
+        text2: {
+            type: string,
+            xgridcols: 6,
+            _isUserSetxGridCols: true
+        },
+        code1: {
+            type: string,
+            xtype: code,
+            xgridcols: 12,
+            _isUserSetxGridCols: true
+        }
+    }
+}
+
+Due to rendering logic following will happen
+text1 will use half available width, because it now has xgridcols set to 6
+text2 will use half available width, because xgridcols is set to 6
+code1 will use all available width, because xgridcols is set to 12
+
+When wide is true and user resizes the window so that available width becomes less than 800px, at-core-modal-element has to change rendering back to single column. But, it has to respect xgridcols values that were present in schema before schema was upgragded.
+at-core-modal-element then inspects the schema and checks the value of _isUserSetxGridCols. If its false, it can remove the xgridcols value. If its true, it should not remove the xgridcols value.
+
+*/
 </script>
+
+
