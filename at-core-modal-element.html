@@ -635,8 +635,39 @@
     },
 
     _setEltValue: function(elt) {
+      // _getInitialValue function returns the value of element.properties.value.value (wow, so many things called value ... )
       var expValue = this._getInitialValue(elt);
+      // if expValue is object we want to add default values from schema to it
       if (typeof expValue == "object") {
+
+        if (elt.hasOwnProperty('schema') && elt.schema.hasOwnProperty('properties') && typeof elt.schema.properties == "object") {
+          var eltProperties = elt.schema.properties;
+          var propNames = Object.keys(eltProperties);
+          // go over properties and check for default values
+          propNames.forEach(function(propName) { 
+            var propDef = eltProperties[propName];
+            
+            // if propDef doesn't have default property, that means that default value is not specified in shcema for this property 
+            if (!propDef.hasOwnProperty('default')) return;
+            
+            // if expValue already has a value for property with propName, we want to overwrite it with the one specified in schema
+            expValue[propName] = propDef['default'];
+          });
+        }
+
+        var thisValue = this.value;
+
+        // if this.value is present and its an object, merge expValue into this.value
+        if (this.value != null && typeof this.value == "object") {
+          var expPropNames = Object.keys(expValue);
+          expPropNames.forEach(function(propName) {
+            // this.value already has a property with propName ignore it, because we do not want to overwrite the value
+            if (thisValue.hasOwnProperty(propName)) return;
+            thisValue[propName] = expValue[propName];
+          });
+        }
+        
+        // give elt the clone of this.value to avoid memory sharing issues
         elt.value = JSON.parse(JSON.stringify(this.value));
         return;
       }
