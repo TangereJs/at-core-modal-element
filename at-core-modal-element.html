@@ -53,7 +53,6 @@
         box-sizing: border-box;
       }
     </style>
-    <at-core-media-query id="mediaQuery" query="(min-width: 800px)" on-query-matches-changed="_handleQueryMatches"></at-core-media-query>
     <div id="messages" class="font-body1"></div>
 
     <at-core-modal id="coreModal" on-close-modal="_handleCloseModal" wide$="[[wide]]">
@@ -209,6 +208,14 @@
       // clear validation errors from UI, because validation errors should be displayed only as result of user interaction
       elt.validate(false);
 
+      this.async(function() {
+        if (elt.is == "at-form-complex") {
+          elt.$.resizeSensor.reset();
+          var currentWidth = elt.$.resizeSensor.queryWidth();
+          elt._updateLayoutForWidth(currentWidth);
+        }
+      });
+
       if (this._isFunction(elt.focus)) {
         elt.focus();
       }
@@ -328,9 +335,8 @@
       // we need to assign elt.schema here for when elt is imported and rendered for the first time and schema is set before .open() is called
       if (this._isObject(elt.properties) && elt.properties.hasOwnProperty('schema')) {
         elt.autoValidate = true;
-        var schema = this._upgradeSchema(this.schema, this.wide, this.$.mediaQuery.queryMatches);
         elt.schema = { properties: {} };
-        elt.schema = schema;
+        elt.schema = this.schema;
       }
       // we need to assign elt.value here for when elt is imported and rendered for the first time and value is set before .open() is called
       this._setEltValue(elt);
@@ -357,7 +363,13 @@
         } else {
           elt.validate(true);
         }
-      });
+        
+        if (elt.is == "at-form-complex") {
+          elt.$.resizeSensor.reset();
+          var currentWidth = elt.$.resizeSensor.queryWidth();
+          elt._updateLayoutForWidth(currentWidth);
+        }
+    });
 
       // for elements that render in sync manner clear validation errors from UI immediately
       elt.validate(false);
@@ -449,7 +461,6 @@
 
       this._setError("");
 
-      schemaObj = this._upgradeSchema(schemaObj, this.wide, this.$.mediaQuery.queryMatches);
       var schemaChangedFn = this._schemaChanged;
       this._schemaChanged = function() { };
       this.schema = schemaObj;
@@ -512,20 +523,6 @@
 
     _handleCloseModal: function(event) {
       this.fire('close-modal', event.detail);
-    },
-
-    _handleQueryMatches: function(event) {
-      var elt = this._getRenderedElement();
-      if (!elt) return;
-
-      var value = event.detail.value;
-      if (!elt.properties.hasOwnProperty('schema')) return;
-
-      var schema = this._upgradeSchema(elt.schema, this.wide, this.$.mediaQuery.queryMatches);
-
-      elt.schema = { properties: {} };
-      elt.schema = schema;
-      elt.validate(false);
     },
 
     // 
@@ -683,30 +680,6 @@
         value = value();
       }
       return value;
-    },
-
-    /* upgrades schema with xgridcols if necessary */
-    _upgradeSchema: function(schema, wide, queryMatches) {
-      var propNames = Object.keys(schema.properties);
-
-      propNames.forEach(function(propName) {
-        var propDef = schema.properties[propName];
-
-        // please read 'What is _isUserSetxGridCols and why its there?' bellow to understand why _isUserSetxgGridCols exists and what it does
-        if (!propDef.hasOwnProperty('_isUserSetxGridCols')) {
-          propDef._isUserSetxGridCols = propDef.hasOwnProperty('xgridcols');
-        }
-        if (propDef._isUserSetxGridCols) return;
-
-        if (wide && queryMatches) {
-          propDef.xgridcols = "6";
-
-        } else {
-          propDef.xgridcols = "12";
-        }
-      }, this);
-
-      return schema;
     },
 
     _isString: function(obj) { return Object.prototype.toString.call(obj) === "[object String]"; },
