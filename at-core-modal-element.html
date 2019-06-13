@@ -64,9 +64,9 @@
         </div>
       </div>
     </at-core-modal>
+    
+    <at-core-activity id="schemaActivity" url="[[schemaUrl]]" content-type="text/plain" handle-as="text" on-response="_handleSchemaActivityResponse" no-credentials on-error="_handleSchemaActivityError"></at-core-activity>
 
-    <at-core-activity id="schemaActivity" url="[[schemaUrl]]" content-type="text/plain" handle-as="text" on-response="_handleSchemaActivityResponse"
-      on-error="_handleSchemaActivityError"></at-core-activity>
   </template>
 </dom-module>
 <script>
