@@ -148,6 +148,11 @@
       this.$.coreModal.close(reason);
     },
 
+    GetRenderedElement: function () {
+      var elt = this._getRenderedElement();
+      return elt;
+    },
+
     ready: function() { },
 
     // 
@@ -355,7 +360,8 @@
 
       var self = this;
       // for elements that render in async manner clear UI errors when element renders
-      elt.addEventListener('rendered', function() {
+      elt.addEventListener('rendered', function () {
+
         // if value is empty, clear validation errors from UI
         if (self._isValueEmptyOrInitial(elt.schema, elt.value, elt)) {
           elt.validate(false);
@@ -369,7 +375,8 @@
           var currentWidth = elt.$.resizeSensor.queryWidth();
           elt._updateLayoutForWidth(currentWidth);
         }
-    });
+
+      });
 
       // for elements that render in sync manner clear validation errors from UI immediately
       elt.validate(false);
@@ -377,6 +384,9 @@
       if (this._isFunction(elt.focus)) {
         elt.focus();
       }
+
+      // this event is handled in at-carbon-form-modal
+      this.fire('element-rendered', { bubbles: false, composed: false });
     },
 
     _isValueEmptyOrInitial: function(schema, value, elt) {
