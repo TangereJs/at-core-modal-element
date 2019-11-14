@@ -57,10 +57,9 @@
 
     <at-core-modal id="coreModal" on-close-modal="_handleCloseModal" wide$="[[wide]]">
       <div id="modalContent" class$="[[elementClass]]">
-        <div id="buttonContainer" class="at-cme-button-container at-layout-horizontal at-layout-end-justified at-p at-background-lightGrey"
-          hidden>
-          <at-carbon-button label="Cancel" on-tap="_handleCancelButtonTap" button-type="contained" button-color="cancel"></at-carbon-button>
-          <at-carbon-button label="OK" on-tap="_handleOkButtonTap" button-type="contained" button-color="primary"></at-carbon-button>
+        <div id="buttonContainer" class="at-cme-button-container at-layout-horizontal at-layout-end-justified at-p at-background-lightGrey" hidden>
+          <at-carbon-button id="cancelButton" label="Cancel" on-tap="_handleCancelButtonTap" button-type="contained" button-color="cancel"></at-carbon-button>
+          <at-carbon-button id="okButton" label="OK" on-tap="_handleOkButtonTap" button-type="contained" button-color="primary"></at-carbon-button>
         </div>
       </div>
     </at-core-modal>
@@ -112,6 +111,18 @@
         observer: '_valueChanged'
       },
 
+      busy: {
+        type: Boolean,
+        value: false,
+        observer: '_busyChanged'
+      },
+
+      disabled: {
+        type: Boolean,
+        value: false,
+        observer: '_disabledChanged'
+      },
+
       _modalElementOptions: {
         type: Object,
         value: function() {
@@ -153,7 +164,9 @@
       return elt;
     },
 
-    ready: function() { },
+    ready: function () {
+      this._preventCloseOnOk = false;
+    },
 
     // 
     // private api
@@ -430,13 +443,25 @@
         return;
       }
 
-      this.close("ok");
+      // close on "OK" should only happen when bindingMode is equal to 0 or not present
+      // this is because bindingMode 1 and 2 issue a POST request with form data. 
+      // when a response with success == true is received -> close the modal, otherwise leave it opened.
+      if (this._preventCloseOnOk == false) this.close("ok");
+
       this.value = JSON.parse(JSON.stringify(elt.value));
       this.fire('value-changed', { value: this.value }, { bubbles: false });
     },
 
-    _schemaChanged: function(newValue, oldValue) {
+    _schemaChanged: function (newValue, oldValue) {
       this.$.coreModal.title = this.schema.$meta && this.schema.$meta.title ? this.schema.$meta.title : '';
+
+      if (this.schema.$meta && this.schema.$meta.bindingMode) {
+        if (this.schema.$meta.bindingMode === 0) {
+          this._preventCloseOnOk = false;
+        } else {
+          this._preventCloseOnOk = true;
+        }
+      }
 
       // if schemaUrl is set ignore locally set schema
       if (this.schemaUrl) return;
@@ -529,6 +554,23 @@
       this._setError("");
 
       this._setEltValue(elt);
+    },
+
+    _busyChanged: function (newValue, oldValue) {
+      if (newValue == undefined) return;
+
+      this.$.coreModal.busy = newValue;
+    },
+
+    _disabledChanged: function (newValue, oldValue) {
+      if (newValue == undefined) return;
+
+      this.$.cancelButton.disabled = newValue;
+      this.$.okButton.disabled = newValue;
+
+      var renderedElement = this._getRenderedElement();
+
+      if (renderedElement != null) renderedElement.disabled = newValue;
     },
 
     _handleCloseModal: function(event) {
