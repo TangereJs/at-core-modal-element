@@ -366,6 +366,8 @@
         }, this);
       }
 
+      if(elt.is != "at-form-complex") this.disabled = false;
+
       this._clearPlaceholder();
       Polymer.dom(this.$.modalContent).insertBefore(elt, this.$.buttonContainer);
 
@@ -374,7 +376,6 @@
       var self = this;
       // for elements that render in async manner clear UI errors when element renders
       elt.addEventListener('rendered', function () {
-
         // if value is empty, clear validation errors from UI
         if (self._isValueEmptyOrInitial(elt.schema, elt.value, elt)) {
           elt.validate(false);
@@ -389,6 +390,8 @@
           elt._updateLayoutForWidth(currentWidth);
         }
 
+        // enable form when at-form-complex is completely rendered
+        self.disabled = false;
       });
 
       // for elements that render in sync manner clear validation errors from UI immediately
@@ -602,6 +605,7 @@
 
       Polymer.dom(this.$.modalContent).insertBefore(placeholderElt.childNodes[0], this.$.buttonContainer);
       Polymer.dom(this.$.modalContent).insertBefore(placeholderElt.childNodes[0], this.$.buttonContainer);
+      this.disabled = true;
     },
 
     _clearPlaceholder: function() {
