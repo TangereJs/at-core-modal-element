@@ -366,7 +366,7 @@
         }, this);
       }
 
-      if(elt.is != "at-form-complex") this.disabled = false;
+      if (elt.is != "at-form-complex") this.disabled = false;
 
       this._clearPlaceholder();
       Polymer.dom(this.$.modalContent).insertBefore(elt, this.$.buttonContainer);
@@ -458,7 +458,7 @@
     _schemaChanged: function (newValue, oldValue) {
       this.$.coreModal.title = this.schema.$meta && this.schema.$meta.title ? this.schema.$meta.title : '';
 
-      if (this.schema.$meta && this.schema.$meta.bindingMode) {
+      if (this.schema.$meta && this.schema.$meta.bindingMode != undefined) {
         if (this.schema.$meta.bindingMode === 0) {
           this._preventCloseOnOk = false;
         } else {
@@ -513,7 +513,6 @@
     _valueChanged: function(newValue, oldValue) {
       // NOTE we can not validate value before .open is first called because presence of rendered element is necessary
       // we need to know the type of renderedElement.value property to do the validation correctly
-
       var elt = this._getRenderedElement();
       if (!elt) return;
 
