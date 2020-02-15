@@ -326,8 +326,8 @@
         // try yaml
         try {
           newSchema = window.jsyaml.load(newSchemaStr);
-        } catch (e) {
-          this._setError('Data returned by remote service is not a json string nor yaml string.');
+        } catch (e) {          
+          this._setError('Data returned by remote service is not a json string nor yaml string. ' + (e.message ? e.message : ''));
           // close modal and clear placeholder, because next time _initialize is called placeholder should be set
           this.$.coreModal.close();
           this._clearPlaceholder();
@@ -349,7 +349,10 @@
       this._renderUI(this._uiElts.renderedElt);
     },
 
-    _renderUI: function(elt) {
+    _renderUI: function (elt) {
+
+      this._element = elt;   // element should be an instance variable 
+
       // we need to assign elt.schema here for when elt is imported and rendered for the first time and schema is set before .open() is called
       if (this._isObject(elt.properties) && elt.properties.hasOwnProperty('schema')) {
         elt.autoValidate = true;
@@ -365,34 +368,21 @@
           elt[opt] = this._modalElementOptions[opt];
         }, this);
       }
-
+      debugger;
       if (elt.is != "at-form-complex") this.disabled = false;
 
       this._clearPlaceholder();
       Polymer.dom(this.$.modalContent).insertBefore(elt, this.$.buttonContainer);
-
       Polymer.dom(this.$.buttonContainer).removeAttribute('hidden');
 
       var self = this;
+
       // for elements that render in async manner clear UI errors when element renders
-      elt.addEventListener('rendered', function () {
-        // if value is empty, clear validation errors from UI
-        if (self._isValueEmptyOrInitial(elt.schema, elt.value, elt)) {
-          elt.validate(false);
+      // todo: analyze problem that event doesn't bubble from at-form-complex
+      elt.addEventListener('rendered', this._elementRenedered.bind(this));
 
-        } else {
-          elt.validate(true);
-        }
-        
-        if (elt.is == "at-form-complex") {
-          elt.$.resizeSensor.reset();
-          var currentWidth = elt.$.resizeSensor.queryWidth();
-          elt._updateLayoutForWidth(currentWidth);
-        }
-
-        // enable form when at-form-complex is completely rendered
-        self.disabled = false;
-      });
+      // enable when element is already rendered
+      if (elt.rendered) this._elementRenedered();
 
       // for elements that render in sync manner clear validation errors from UI immediately
       elt.validate(false);
@@ -404,6 +394,27 @@
       // this event is handled in at-carbon-form-modal
       this.fire('element-rendered', { bubbles: false, composed: false });
     },
+
+    _elementRenedered: function () {
+
+      var elt = this._element;
+
+        // if value is empty, clear validation errors from UI
+        if (this._isValueEmptyOrInitial(elt.schema, elt.value, elt)) {
+          elt.validate(false);
+        } else {
+          elt.validate(true);
+        }
+        
+        if (elt.is == "at-form-complex") {
+          elt.$.resizeSensor.reset();
+          var currentWidth = elt.$.resizeSensor.queryWidth();
+          elt._updateLayoutForWidth(currentWidth);
+        }
+
+        // enable form when at-form-complex is completely rendered
+        this.disabled = false;
+      },
 
     _isValueEmptyOrInitial: function(schema, value, elt) {
       var result = true;
@@ -565,6 +576,7 @@
     },
 
     _disabledChanged: function (newValue, oldValue) {
+      
       if (newValue == undefined) return;
 
       this.$.cancelButton.disabled = newValue;
